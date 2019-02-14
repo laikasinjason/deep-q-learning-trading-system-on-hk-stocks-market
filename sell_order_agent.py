@@ -6,11 +6,12 @@ from model import Model
 
 class SellOrderAgent(Agent):
     def __init__(self, environment, buy_signal_agent=None):
-		super().__init__(environment)
+        super().__init__(environment)
+
         self.bp = None
         self.model = Model(7, 50)
         self.__buy_signal_agent = buy_signal_agent
-		self.state = None
+        self.state = None
 
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
@@ -31,13 +32,13 @@ class SellOrderAgent(Agent):
         if d <= 0:
             reward = math.exp(100 * d / high)
             sp = ma5 + action / 100 * ma5
-			self.__model.fit(self.state, reward)
+            self.__model.fit(self.state, reward)
 
             self.invoke_buy_signal_agent(sp)
 
         else:
             reward = 0
-			self.model.fit(self.state, reward)
+            self.model.fit(self.state, reward)
 
             close = 3
             sp = close

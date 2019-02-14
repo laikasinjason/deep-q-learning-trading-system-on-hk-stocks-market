@@ -4,11 +4,12 @@ from model import Model
 
 class SellSignalAgent(Agent):
     def __init__(self, environment, sell_order_agent=None):
-		super().__init__(environment)
+        super().__init__(environment)
+
         self.bp = None
         self.model = Model(2, 50)
         self.__sell_order_agent = sell_order_agent
-		self.state = None
+        self.state = None
 
     def get_sell_order_agent(self):
         return self.__sell_order_agent
@@ -18,10 +19,10 @@ class SellSignalAgent(Agent):
 
     def process_action(self, sell_action):
         if not sell_action:
-			market_data = self.environment.get_market_data_by_date_of_state(self.state)
+            market_data = self.environment.get_market_data_by_date_of_state(self.state)
             reward = market_data['rc']
-			self.model.fit(self.state, reward)
-			
+            self.model.fit(self.state, reward)
+
             self.process_next_state()
         else:
             self.invoke_sell_order_agent()

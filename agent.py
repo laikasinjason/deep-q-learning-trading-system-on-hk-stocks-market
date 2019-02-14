@@ -1,13 +1,12 @@
 import random
-import environment import Environment
 
 
 class Agent:
-	def __init__(self, environment):
-		self.environment = environment
+    def __init__(self, environment):
+        self.environment = environment
 
-    def produce_state_and_get_action(self, isFirst=False):
-        state = self.environment.produce_state(self, isFirst)
+    def produce_state_and_get_action(self, is_first=False):
+        state = self.environment.produce_state(self, is_first)
         action = self.get_action(state, 1000000)  # use static epsilon for now
         return state, action
 
@@ -31,7 +30,7 @@ class Agent:
 
         # Choose the action
         if random.random() < epsilon:
-			action = environment.get_random_action(self)
+            action = environment.get_random_action(self)
         else:
             action = 0
             # action = self.model.predict(state).argmax()
