@@ -1,13 +1,15 @@
 import random
-import environment
+import environment import Environment
 
 
 class Agent:
-    def produce_state_and_get_action(self):
-        model = None
-        state = environment.produce_state()
-        action = self.get_action(state, model, 1000000)  # use static epsilon for now
-        return action
+	def __init__(self, environment):
+		self.environment = environment
+
+    def produce_state_and_get_action(self, isFirst=False):
+        state = self.environment.produce_state(self, isFirst)
+        action = self.get_action(state, 1000000)  # use static epsilon for now
+        return state, action
 
     @staticmethod
     def get_epsilon_for_iteration(current_iteration, stable_iteration=1000000, initial_epsilon=1,
@@ -23,17 +25,16 @@ class Agent:
 
         return epsilon
 
-    def get_action(self, state, model, iteration):
+    def get_action(self, state, iteration):
         # Choose epsilon based on the iteration
         epsilon = self.get_epsilon_for_iteration(iteration)
 
         # Choose the action
         if random.random() < epsilon:
-            action = True
-        #             action = env.action_space.sample()
+			action = environment.get_random_action(self)
         else:
-            action = False
-        #             action = model.predict(state).argmax()
-        print(action)
+            action = 0
+            # action = self.model.predict(state).argmax()
+        print(self.__class__.__name__ + ": " + str(action))
 
         return action

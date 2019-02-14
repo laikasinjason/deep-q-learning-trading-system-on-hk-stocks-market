@@ -5,10 +5,12 @@ from model import Model
 
 
 class SellOrderAgent(Agent):
-    def __init__(self, model, buy_signal_agent=None):
+    def __init__(self, environment, buy_signal_agent=None):
+		super().__init__(environment)
         self.bp = None
-        self.__model = Model(7, 50)
+        self.model = Model(7, 50)
         self.__buy_signal_agent = buy_signal_agent
+		self.state = None
 
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
@@ -17,7 +19,7 @@ class SellOrderAgent(Agent):
         self.__buy_signal_agent = buy_signal_agent
 
     def process_next_state(self):
-        action = self.produce_state_and_get_action()
+        self.state, action = self.produce_state_and_get_action()
         self.process_action(action)
 
     def process_action(self, action):
@@ -27,13 +29,15 @@ class SellOrderAgent(Agent):
         print("processing sell order")
 
         if d <= 0:
-            r = math.exp(100 * d / high)
+            reward = math.exp(100 * d / high)
             sp = ma5 + action / 100 * ma5
+			self.__model.fit(self.state, reward)
 
             self.invoke_buy_signal_agent(sp)
 
         else:
-            r = 0
+            reward = 0
+			self.model.fit(self.state, reward)
 
             close = 3
             sp = close
