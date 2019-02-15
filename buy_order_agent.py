@@ -8,10 +8,11 @@ class BuyOrderAgent(Agent):
     def __init__(self, environment, buy_signal_agent=None, sell_signal_agent=None):
         super().__init__(environment)
 
-        self.model = Model(7, 50)
+        # technical indicator 4*8
+        self.model = Model(7, 32)
         self.__buy_signal_agent = buy_signal_agent
         self.__sell_signal_agent = sell_signal_agent
-        self.state = None
+        self.state = None # save the state to be trained
 
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
@@ -36,16 +37,16 @@ class BuyOrderAgent(Agent):
         if d >= 0:
             reward = math.exp(-100 * d / low)
             bp = ma5 + action / 100 * ma5
-            self.model.fit(self.state, reward)
+            self.model.fit(self.state, reward, action)
             self.invoke_sell_signal_agent(bp)
         else:
             reward = 0
-            self.model.fit(self.state, reward)
+            self.model.fit(self.state, reward, action)
             self.invoke_buy_signal_agent()
 
     def process_next_state(self):
-        self.state, new_action = self.produce_state_and_get_action()
-        self.process_action(new_action)
+        self.state, action = self.produce_state_and_get_action()
+        self.process_action(action)
 
     def invoke_sell_signal_agent(self, bp):
         self.__sell_signal_agent.start_new_training(bp)

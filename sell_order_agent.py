@@ -9,9 +9,11 @@ class SellOrderAgent(Agent):
         super().__init__(environment)
 
         self.bp = None
-        self.model = Model(7, 50)
+        # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
+        self.model = Model(7, 120)
         self.__buy_signal_agent = buy_signal_agent
-        self.state = None
+        self.state = None # save the state to be trained
+        self.action = None # save the action needed to pass to fit method
 
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
@@ -32,13 +34,13 @@ class SellOrderAgent(Agent):
         if d <= 0:
             reward = math.exp(100 * d / high)
             sp = ma5 + action / 100 * ma5
-            self.__model.fit(self.state, reward)
+            self.model.fit(self.state, reward, action)
 
             self.invoke_buy_signal_agent(sp)
 
         else:
             reward = 0
-            self.model.fit(self.state, reward)
+            self.model.fit(self.state, reward, action)
 
             close = 3
             sp = close
