@@ -3,14 +3,14 @@ from model import Model
 
 
 class BuySignalAgent(Agent):
-    def __init__(self, environment, no_train, buy_order_agent=None):
+    def __init__(self, environment, num_train, buy_order_agent=None):
         super().__init__(environment)
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8
         self.model = Model(2, 112)
         self.__buy_order_agent = buy_order_agent
-        self.state = None # save the state to be trained
-        self.buy_action = None # save the action needed to pass to fit method
-        self.__no_train = no_train
+        self.state = None  # save the state to be trained
+        self.buy_action = None  # save the action needed to pass to fit method
+        self.__num_train = num_train
         self.__iteration = 0
 
     def get_buy_order_agent(self):
@@ -29,16 +29,18 @@ class BuySignalAgent(Agent):
         else:
             self.invoke_buy_order_agent()
 
-    def update_reward(self, from_but_order_agent, bp=None, sp=None):
-        if from_but_order_agent:
+    def update_reward(self, from_buy_order_agent, bp=None, sp=None):
+        if from_buy_order_agent:
             reward = 0
+            print("reward: " + reward + ", state: " + self.state + ", action: " + self.buy_action)
             self.model.fit(self.state, reward, self.buy_action)
 
         else:
             reward = ((1 - self.environment.transaction_cost) * sp - bp) / bp
+            print("reward: " + reward + ", state: " + self.state + ", action: " + self.buy_action)
             self.model.fit(self.state, reward, self.buy_action)
             self.__iteration = self.__iteration + 1
-            if self.__iteration < self.__no_train:
+            if self.__iteration < self.__num_train:
                 self.start_new_training()
 
     def invoke_buy_order_agent(self):

@@ -12,7 +12,7 @@ class BuyOrderAgent(Agent):
         self.model = Model(7, 32)
         self.__buy_signal_agent = buy_signal_agent
         self.__sell_signal_agent = sell_signal_agent
-        self.state = None # save the state to be trained
+        self.state = None  # save the state to be trained
 
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
@@ -29,19 +29,20 @@ class BuyOrderAgent(Agent):
     def process_action(self, action):
         market_data = self.environment.get_market_data_by_date_of_state(self.state)
 
-        ma5 = market_data['ma5']
-        low = market_data['low']
+        ma5 = market_data['ma5'].iloc[-1]
+        low = market_data['low'].iloc[-1]
         d = ma5 + action / 100 * ma5 - low
+        print(action)
         print("processing buy order")
 
         if d >= 0:
             reward = math.exp(-100 * d / low)
             bp = ma5 + action / 100 * ma5
-            self.model.fit(self.state, reward, action)
+            # self.model.fit(self.state, reward, action)
             self.invoke_sell_signal_agent(bp)
         else:
             reward = 0
-            self.model.fit(self.state, reward, action)
+            # self.model.fit(self.state, reward, action)
             self.invoke_buy_signal_agent()
 
     def process_next_state(self):
@@ -52,7 +53,7 @@ class BuyOrderAgent(Agent):
         self.__sell_signal_agent.start_new_training(bp)
 
     def invoke_buy_signal_agent(self):
-        self.__buy_signal_agent.update_reward(False)
+        self.__buy_signal_agent.update_reward(True)
 
     def start_new_training(self):
         print("Buy order - start new training")

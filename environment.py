@@ -1,5 +1,7 @@
 import random
 
+import pandas as pd
+
 from buy_order_agent import BuyOrderAgent
 from buy_signal_agent import BuySignalAgent
 from sell_order_agent import SellOrderAgent
@@ -22,25 +24,26 @@ class Environment:
             action = random.randint(0, 2)
         elif isinstance(agent, SellSignalAgent):
             action = random.randint(0, 2)
+        return action
 
     def generate_sell_signal_states(self):
-        s = "sellSignalStates"
+        s = "generated sellSignalStates"
         return s
 
-    def generate_buy_signal_states(self, isFirst):
-        if isFirst:
+    def generate_buy_signal_states(self, is_first):
+        if is_first:
             # randomly pick a day from dataset
-            s = "buySignalStates - first"
+            s = "generated buySignalStates - first"
         else:
-            s = "buySignalStates"
+            s = "generated buySignalStates"
         return s
 
     def generate_sell_order_states(self):
-        s = "sellOrderStates"
+        s = "generated sellOrderStates"
         return s
 
     def generate_buy_order_states(self):
-        s = "buyOrderStates"
+        s = "generated buyOrderStates"
         return s
 
     def load_data(self):
@@ -48,7 +51,8 @@ class Environment:
         pass
 
     def get_market_data_by_date_of_state(self, state):
-        pass
+        sample_df = pd.DataFrame(data={'ma5': [1], 'low': [3]})
+        return sample_df
 
     def produce_state(self, agent, is_first):
         if isinstance(agent, BuyOrderAgent):

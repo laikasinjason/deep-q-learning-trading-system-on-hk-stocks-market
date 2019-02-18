@@ -10,8 +10,8 @@ class SellSignalAgent(Agent):
         # technical indicator 4*8
         self.model = Model(2, 50)
         self.__sell_order_agent = sell_order_agent
-        self.state = None # save the state to be trained
-        self.action = None # save the action needed to pass to fit method
+        self.state = None  # save the state to be trained
+        self.action = None  # save the action needed to pass to fit method
 
     def get_sell_order_agent(self):
         return self.__sell_order_agent
@@ -23,9 +23,9 @@ class SellSignalAgent(Agent):
         market_data = self.environment.get_market_data_by_date_of_state(self.state)
         if not sell_action:
             # force sell signal agent to sell if profit is in certain condition
-            if((market_data['profit'] > 0.3) or (market_data['profit'] < -0.2)):
+            if (market_data['profit'] > 0.3) or (market_data['profit'] < -0.2):
                 self.invoke_sell_order_agent()
-             else:
+            else:
                 reward = market_data['rc']
                 self.model.fit(self.state, reward, sell_action)
                 self.process_next_state()

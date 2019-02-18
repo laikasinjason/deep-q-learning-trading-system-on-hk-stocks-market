@@ -30,7 +30,7 @@ class Agent:
 
         # Choose the action
         if random.random() < epsilon:
-            action = environment.get_random_action(self)
+            action = self.environment.get_random_action(self)
         else:
             action = 0
             # action = self.model.predict(state).argmax()

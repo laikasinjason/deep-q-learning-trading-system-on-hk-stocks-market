@@ -12,8 +12,8 @@ class SellOrderAgent(Agent):
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
         self.model = Model(7, 120)
         self.__buy_signal_agent = buy_signal_agent
-        self.state = None # save the state to be trained
-        self.action = None # save the action needed to pass to fit method
+        self.state = None  # save the state to be trained
+        self.action = None  # save the action needed to pass to fit method
 
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
