@@ -53,11 +53,35 @@ def get_profit(data, buy_price):
     # 100×(closing price of the current day - buy price)/buy price
     return (data['close'] - buy_price)/buy_price
     
-def create_truning_point_matrix():
+def create_turning_point_matrix(data):
     # create turning points series
     idx_min, idx_max = turning_points(array)
     
-    # shift the turning point array to certain day difference, with the close price of turning point
-    idx_max_shift2 = idx_max.shift(2)
+    max_matrix = create_turning_point_series(data, 2, idx_max)
+    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 3, idx_max)], axis=1)
+    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 5, idx_max)], axis=1)
+    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 10, idx_max)], axis=1)
+    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 15, idx_max}], axis=1)
+    
+    min_matrix = create_turning_point_series(data, 2, idx_min)
+    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 3, idx_min)], axis=1)
+    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 5, idx_min)], axis=1)
+    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 10, idx_min)], axis=1)
+    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 15, idx_min}], axis=1)
+
+
+    
+def create_turning_point_series(data, day_diff, id_tp_array):
+     # shift the turning point array to certain day difference, with the close price of turning point
+    idx_tp_shift = id_tp_array.shift(day_diff)
+    px_shift = data['close'].shift(day_diff)
     # cal px diff of Tday's px and TP's px
+    px_diff = ((data['close'] - px_shift)/px_shift).where(idx_tp_shift==1)
     # binning and transform to one hot categorization
+    bins = [-np.inf, -0.2, -0.1, -0.05, 0, 0.05, 0.1, 0.2, np.inf]
+    # fibonacci_bins = [-np.inf, -0.764, -0.618, -0.5, -0.382, 0, 0.382, 0.5, 0.618, 0.764, np.inf]
+    names = ['<-0.2', '-0.2--0.1', '-0.1--0.05',' -0.05-0', '0-0.05', '0.05-0.1', '0.1-0.2', '>0.2']
+    px_diff_bin = pd.cut(px_diff, bins, labels=names)
+    
+    return pd.get_dummies(px_diff_bin)
+    
