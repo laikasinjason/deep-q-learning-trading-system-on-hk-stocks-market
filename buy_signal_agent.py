@@ -32,12 +32,12 @@ class BuySignalAgent(Agent):
     def update_reward(self, from_buy_order_agent, bp=None, sp=None):
         if from_buy_order_agent:
             reward = 0
-            print("reward: " + reward + ", state: " + self.state + ", action: " + self.buy_action)
+            print("reward: " + str(reward) + ", state: " + str(self.state) + ", action: " + str(self.buy_action))
             self.model.fit(self.state, reward, self.buy_action)
 
         else:
             reward = ((1 - self.environment.transaction_cost) * sp - bp) / bp
-            print("reward: " + reward + ", state: " + self.state + ", action: " + self.buy_action)
+            print("reward: " + str(reward) + ", state: " + str(self.state) + ", action: " + str(self.buy_action))
             self.model.fit(self.state, reward, self.buy_action)
             self.__iteration = self.__iteration + 1
             if self.__iteration < self.__num_train:
