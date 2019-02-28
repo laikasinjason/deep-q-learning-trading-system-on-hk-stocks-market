@@ -19,13 +19,15 @@ class BuySignalAgent(Agent):
     def set_buy_order_agent(self, buy_order_agent):
         self.__buy_order_agent = buy_order_agent
 
-    def process_next_state(self, is_first=False):
-        self.state, self.buy_action = self.produce_state_and_get_action(is_first)
-        self.process_action(self.buy_action)
+    def process_next_state(self, last_date):
+        self.state, self.buy_action = self.produce_state_and_get_action(last_date)
+        # get the date of the current state
+        date = 1
+        self.process_action(self.buy_action, date)
 
-    def process_action(self, buy_action):
+    def process_action(self, buy_action, last_date):
         if not buy_action:
-            self.process_next_state()
+            self.process_next_state(last_date)
         else:
             self.invoke_buy_order_agent()
 

@@ -5,8 +5,8 @@ class Agent:
     def __init__(self, environment):
         self.environment = environment
 
-    def produce_state_and_get_action(self, is_first=False):
-        state = self.environment.produce_state(self, is_first)
+    def produce_state_and_get_action(self, last_date=None):
+        state = self.environment.produce_state(self, last_date)
         action = self.get_action(state, 1000000)  # use static epsilon for now
         return state, action
 

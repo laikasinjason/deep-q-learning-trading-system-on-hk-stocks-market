@@ -1,4 +1,5 @@
 import random
+import data_engineering
 
 import pandas as pd
 
@@ -13,6 +14,7 @@ class Environment:
         self.data = None
         self.states = None
         self.transaction_cost = 1
+        self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_matrix(self.data)
 
     @staticmethod
     def get_random_action(agent):
@@ -26,23 +28,23 @@ class Environment:
             action = random.randint(0, 2)
         return action
 
-    def generate_sell_signal_states(self):
+    def generate_sell_signal_states(self, last_date):
         s = "generated sellSignalStates"
         return s
 
-    def generate_buy_signal_states(self, is_first):
-        if is_first:
+    def generate_buy_signal_states(self, last_date):
+        if last_date==None:
             # randomly pick a day from dataset
             s = "generated buySignalStates - first"
         else:
             s = "generated buySignalStates"
         return s
 
-    def generate_sell_order_states(self):
+    def generate_sell_order_states(self, last_date):
         s = "generated sellOrderStates"
         return s
 
-    def generate_buy_order_states(self):
+    def generate_buy_order_states(self, last_date):
         s = "generated buyOrderStates"
         return s
 
@@ -54,15 +56,15 @@ class Environment:
         sample_df = pd.DataFrame(data={'ma5': [1], 'low': [3]})
         return sample_df
 
-    def produce_state(self, agent, is_first):
+    def produce_state(self, agent, last_date):
         if isinstance(agent, BuyOrderAgent):
-            s = self.generate_buy_order_states()
+            s = self.generate_buy_order_states(last_date)
         elif isinstance(agent, SellOrderAgent):
-            s = self.generate_sell_order_states()
+            s = self.generate_sell_order_states(last_date)
         elif isinstance(agent, BuySignalAgent):
-            s = self.generate_buy_signal_states(is_first)
+            s = self.generate_buy_signal_states(last_date)
         elif isinstance(agent, SellSignalAgent):
-            s = self.generate_sell_signal_states()
+            s = self.generate_sell_signal_states(last_date)
 
         print(s)
         return s
