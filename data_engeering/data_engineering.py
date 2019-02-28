@@ -71,6 +71,8 @@ def create_turning_point_matrix(data):
     min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 5, idx_min)], axis=1)
     min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 10, idx_min)], axis=1)
     min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 15, idx_min}], axis=1)
+    
+    return max_matrix, min_matrix
 
 
     
