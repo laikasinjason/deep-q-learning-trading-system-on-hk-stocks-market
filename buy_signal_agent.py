@@ -19,15 +19,20 @@ class BuySignalAgent(Agent):
     def set_buy_order_agent(self, buy_order_agent):
         self.__buy_order_agent = buy_order_agent
 
-    def process_next_state(self, last_date):
-        self.state, self.buy_action = self.produce_state_and_get_action(last_date)
-        # get the date of the current state
-        date = 1
-        self.process_action(self.buy_action, date)
+    def process_next_state(self, last_state_date=None):
+        self.state, self.buy_action = self.produce_state_and_get_action(last_state_date)
+        
+        if self.state == None or self.buy_action == None:
+            return True
+        else:
+            # get the date of this state
+            this_state_date = 1
+            self.process_action(self.buy_action, this_state_date)
+            return False
 
-    def process_action(self, buy_action, last_date):
+    def process_action(self, buy_action, last_state_date):
         if not buy_action:
-            self.process_next_state(last_date)
+            self.process_next_state(last_state_date)
         else:
             self.invoke_buy_order_agent()
 
@@ -46,8 +51,12 @@ class BuySignalAgent(Agent):
                 self.start_new_training()
 
     def invoke_buy_order_agent(self):
-        self.__buy_order_agent.start_new_training()
+        # invoking buy order agent with the state of the stock at the same day
+        self.__buy_order_agent.start_new_training(self.state)
 
     def start_new_training(self):
         print("Buy signal - start new training")
-        self.process_next_state(is_first=True)
+        terminated = self.process_next_state()
+        if terminated:
+            if self.__iteration < self.__num_train:
+                self.start_new_training()

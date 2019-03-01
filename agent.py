@@ -7,7 +7,10 @@ class Agent:
 
     def produce_state_and_get_action(self, last_date=None):
         state = self.environment.produce_state(self, last_date)
-        action = self.get_action(state, 1000000)  # use static epsilon for now
+        if state == None:
+            # case when next day's state is not available
+            return None, None
+        action = self.get_action(state)
         return state, action
 
     @staticmethod
@@ -24,7 +27,9 @@ class Agent:
 
         return epsilon
 
-    def get_action(self, state, iteration):
+    def get_action(self, state):
+        iteration = 1000000  # use static epsilon for now
+        
         # Choose epsilon based on the iteration
         epsilon = self.get_epsilon_for_iteration(iteration)
 

@@ -21,10 +21,6 @@ class SellOrderAgent(Agent):
     def set_buy_signal_agent(self, buy_signal_agent):
         self.__buy_signal_agent = buy_signal_agent
 
-    def process_next_state(self):
-        self.state, action = self.produce_state_and_get_action()
-        self.process_action(action)
-
     def process_action(self, action):
         ma5 = 4
         high = 1
@@ -48,8 +44,17 @@ class SellOrderAgent(Agent):
 
     def invoke_buy_signal_agent(self, sp):
         self.__buy_signal_agent.update_reward(False, self.bp, sp)
+        
+    def restart_training(self):
+        # state is not available, restart from the top
+        self.__buy_signal_agent.start_new_training()
 
-    def start_new_training(self, bp):
+    def start_new_training(self, bp, state):
         print("Sell order - start new training")
         self.bp = bp
-        self.process_next_state()
+        action = self.get_action(state)
+
+        terminated = self.process_action(action)
+        
+        if terminated:
+            self.restart_training()

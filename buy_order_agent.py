@@ -26,11 +26,21 @@ class BuyOrderAgent(Agent):
     def set_sell_signal_agent(self, sell_signal_agent):
         self.__sell_signal_agent = sell_signal_agent
 
-    def process_action(self, action):
-        market_data = self.environment.get_market_data_by_date_of_state(self.state)
+    def process_action(self, action, last_state_date):
+        # buy order agent consider state on T-1, and place order on T day
+        market_data = self.environment.get_market_data_by_date_of_state(last_state_date+1)
+        
+        if market_data == None:
+            # terminated
+            return True
 
         ma5 = market_data['ma5'].iloc[-1]
         low = market_data['low'].iloc[-1]
+        
+        if ma5 == None or low == None:
+            # terminated
+            return True
+        
         d = ma5 + action / 100 * ma5 - low
         print(action)
         print("processing buy order")
@@ -39,22 +49,29 @@ class BuyOrderAgent(Agent):
             reward = math.exp(-100 * d / low)
             bp = ma5 + action / 100 * ma5
             # self.model.fit(self.state, reward, action)
-            self.invoke_sell_signal_agent(bp)
+            # last state date for sell signal becomes T day, start training on T+1
+            self.invoke_sell_signal_agent(bp, last_state_date+1)
         else:
             reward = 0
             # self.model.fit(self.state, reward, action)
             self.invoke_buy_signal_agent()
 
-    def process_next_state(self):
-        self.state, action = self.produce_state_and_get_action()
-        self.process_action(action)
-
-    def invoke_sell_signal_agent(self, bp):
-        self.__sell_signal_agent.start_new_training(bp)
+    def invoke_sell_signal_agent(self, bp, last_state_date):
+        self.__sell_signal_agent.start_new_training(bp, last_state_date)
 
     def invoke_buy_signal_agent(self):
         self.__buy_signal_agent.update_reward(True)
+        
+    def restart_training(self):
+        # state is not available, restart from the top
+        self.__buy_signal_agent.start_new_training()
 
-    def start_new_training(self):
+    def start_new_training(self, state):
         print("Buy order - start new training")
-        self.process_next_state()
+        action = self.get_action(state)
+        this_state_date = 1 # get state's date
+        terminated = self.process_action(action, this_state_date)
+        
+        if terminated:
+            self.restart_training()
+            

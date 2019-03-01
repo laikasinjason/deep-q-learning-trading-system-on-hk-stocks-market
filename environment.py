@@ -29,6 +29,7 @@ class Environment:
         return action
 
     def generate_sell_signal_states(self, last_date):
+        # get next day state, if next day state is not available, throws error
         s = "generated sellSignalStates"
         return s
 
@@ -41,10 +42,12 @@ class Environment:
         return s
 
     def generate_sell_order_states(self, last_date):
+        # get next day state, if next day state is not available, throws error
         s = "generated sellOrderStates"
         return s
 
     def generate_buy_order_states(self, last_date):
+        # get next day state, if next day state is not available, throws error
         s = "generated buyOrderStates"
         return s
 
