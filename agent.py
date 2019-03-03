@@ -29,7 +29,7 @@ class Agent:
 
     def get_action(self, state):
         iteration = 1000000  # use static epsilon for now
-        
+
         # Choose epsilon based on the iteration
         epsilon = self.get_epsilon_for_iteration(iteration)
 

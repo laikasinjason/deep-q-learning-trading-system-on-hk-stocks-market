@@ -44,7 +44,7 @@ class SellSignalAgent(Agent):
 
     def invoke_sell_order_agent(self):
         self.__sell_order_agent.start_new_training(self.bp, self.state)
-        
+
     def restart_training(self):
         # state is not available, restart from the top
         self.__sell_order_agent.restart_training()

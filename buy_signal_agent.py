@@ -21,7 +21,7 @@ class BuySignalAgent(Agent):
 
     def process_next_state(self, last_state_date=None):
         self.state, self.buy_action = self.produce_state_and_get_action(last_state_date)
-        
+
         if self.state == None or self.buy_action == None:
             return True
         else:

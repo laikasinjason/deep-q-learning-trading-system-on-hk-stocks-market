@@ -1,6 +1,6 @@
 import random
-import data_engineering
 
+import data_engineering
 import pandas as pd
 
 from buy_order_agent import BuyOrderAgent
@@ -34,7 +34,7 @@ class Environment:
         return s
 
     def generate_buy_signal_states(self, last_date):
-        if last_date==None:
+        if last_date == None:
             # randomly pick a day from dataset
             s = "generated buySignalStates - first"
         else:

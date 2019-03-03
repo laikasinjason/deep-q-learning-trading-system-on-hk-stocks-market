@@ -1,14 +1,12 @@
-from sell_order_agent import SellOrderAgent
 from buy_order_agent import BuyOrderAgent
-from sell_signal_agent import SellSignalAgent
 from buy_signal_agent import BuySignalAgent
 from environment import Environment
-
-
+from sell_order_agent import SellOrderAgent
+from sell_signal_agent import SellSignalAgent
 
 if __name__ == '__main__':
     print("Starting environment")
-    
+
     # variables initialization
     env = Environment()
     sellOrderAgent = SellOrderAgent(env)
@@ -20,5 +18,5 @@ if __name__ == '__main__':
     buyOrderAgent.set_buy_signal_agent(buySignalAgent)
     buyOrderAgent.set_sell_signal_agent(sellSignalAgent)
     sellOrderAgent.set_buy_signal_agent(buySignalAgent)
-    
+
     buySignalAgent.start_new_training()
