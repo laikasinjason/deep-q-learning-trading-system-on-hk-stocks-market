@@ -34,8 +34,8 @@ class BuyOrderAgent(Agent):
             # terminated
             return True
 
-        ma5 = market_data['ma5'].iloc[-1]
-        low = market_data['low'].iloc[-1]
+        ma5 = market_data['ma5']
+        low = market_data['low']
 
         if ma5 == None or low == None:
             # terminated
@@ -69,7 +69,7 @@ class BuyOrderAgent(Agent):
     def start_new_training(self, state):
         print("Buy order - start new training")
         action = self.get_action(state)
-        this_state_date = 1  # get state's date
+        this_state_date = state['date']  # get state's date
         terminated = self.process_action(action, this_state_date)
 
         if terminated:

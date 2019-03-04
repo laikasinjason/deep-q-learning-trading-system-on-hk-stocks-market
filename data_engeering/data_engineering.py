@@ -47,51 +47,49 @@ def get_today_high():
     # used to determined if sell order is successfully executed
     pass
     
-def get_rate_of_change_of_close(data):
-    # used for the reward training on sell signal agent
-    data['rc'] = data['close'].pct_change()
 
 def get_profit(data, buy_price):
     # used for sell signal agent 
     # 100×(closing price of the current day - buy price)/buy price
     return (data['close'] - buy_price)/buy_price
     
-def create_turning_point_matrix(data):
+def create_turning_point_4dmatrix(data):
     # create turning points series
-    idx_min, idx_max = turning_points(array)
+    idx_min, idx_max = turning_points(data['close'])
     
-    max_matrix = create_turning_point_series(data, 2, idx_max)
-    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 3, idx_max)], axis=1)
-    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 5, idx_max)], axis=1)
-    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 10, idx_max)], axis=1)
-    max_matrix = pd.concat([max_matrix, create_turning_point_series(data, 15, idx_max}], axis=1)
+    max_matrix = create_turning_point_matrix_for_day_diff(data, 2, idx_max)
+    max_matrix = pd.concat([max_matrix, create_turning_point_matrix_for_day_diff(data, 3, idx_max)], axis=1)
+    max_matrix = pd.concat([max_matrix, create_turning_point_matrix_for_day_diff(data, 5, idx_max)], axis=1)
+    max_matrix = pd.concat([max_matrix, create_turning_point_matrix_for_day_diff(data, 10, idx_max)], axis=1)
+    max_matrix = pd.concat([max_matrix, create_turning_point_matrix_for_day_diff(data, 15, idx_max}], axis=1)
     
-    min_matrix = create_turning_point_series(data, 2, idx_min)
-    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 3, idx_min)], axis=1)
-    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 5, idx_min)], axis=1)
-    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 10, idx_min)], axis=1)
-    min_matrix = pd.concat([min_matrix, create_turning_point_series(data, 15, idx_min}], axis=1)
+    min_matrix = create_turning_point_matrix_for_day_diff(data, 2, idx_min)
+    min_matrix = pd.concat([min_matrix, create_turning_point_matrix_for_day_diff(data, 3, idx_min)], axis=1)
+    min_matrix = pd.concat([min_matrix, create_turning_point_matrix_for_day_diff(data, 5, idx_min)], axis=1)
+    min_matrix = pd.concat([min_matrix, create_turning_point_matrix_for_day_diff(data, 10, idx_min)], axis=1)
+    min_matrix = pd.concat([min_matrix, create_turning_point_matrix_for_day_diff(data, 15, idx_min}], axis=1)
     
+    # rotate the matrix axes
     return max_matrix, min_matrix
 
 
     
-def create_turning_point_series(data, day_diff, id_tp_array):
+def create_turning_point_matrix_for_day_diff(data, day_diff, id_tp_array):
      # shift the turning point array to certain day difference, with the close price of turning point
     idx_tp_shift = id_tp_array.shift(day_diff)
     px_shift = data['close'].shift(day_diff)
     # cal px diff of Tday's px and TP's px
     px_diff = ((data['close'] - px_shift)/px_shift).where(idx_tp_shift==1)
     # binning and transform to one hot categorization
-    # bins = [-np.inf, -0.2, -0.1, -0.05, 0, 0.05, 0.1, 0.2, np.inf]
+    bins = [-np.inf, -0.2, -0.1, -0.05, 0, 0.05, 0.1, 0.2, np.inf]
     # fibonacci_bins = [-np.inf, -0.764, -0.618, -0.5, -0.382, 0, 0.382, 0.5, 0.618, 0.764, np.inf]
-    # names = ['<-0.2', '-0.2--0.1', '-0.1--0.05',' -0.05-0', '0-0.05', '0.05-0.1', '0.1-0.2', '>0.2']
+    names = ['<-0.2', '-0.2--0.1', '-0.1--0.05',' -0.05-0', '0-0.05', '0.05-0.1', '0.1-0.2', '>0.2']
     px_diff_bin = pd.cut(px_diff, bins, labels=names)
     
     return pd.get_dummies(px_diff_bin)
     
     
-def create_order_agent_matrix(data):
+def create_order_agent_4dmatrix(data):
     high_low_diff = (data['high'] - data['low'])/data['low']
     ma5_diff = (sma(data['close'], 5) - data['close'])/data['close']
     ma10_diff = (sma(data['close'], 10) - data['close'])/data['close']
@@ -107,7 +105,12 @@ def create_order_agent_matrix(data):
     result_matrix = pd.concat([result_matrix, pd.get_dummies(ma10_diff_bin)], axis=1)
     result_matrix = pd.concat([result_matrix, pd.get_dummies(ma20_diff_bin)], axis=1)
     
+    # rotate result matrix axes
     return result_matrix
+    
+def enrich_market_data(data):
+    data['ma5'] = sma(data['close'], 5)
+    data['rate_of_close'] = data['close'].pct_change()
     
     
     
