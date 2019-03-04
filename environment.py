@@ -1,8 +1,8 @@
 import random
 
-import data_engineering
 import pandas as pd
 
+import data_engeering.data_engineering as data_engineering
 from buy_order_agent import BuyOrderAgent
 from buy_signal_agent import BuySignalAgent
 from sell_order_agent import SellOrderAgent
@@ -14,12 +14,13 @@ class Environment:
         self.data = None
         self.states = None
         self.transaction_cost = 1
-        enrich_market_data(self.data)
-        self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_4dmatrix(self.data)
-        self.order_agent_matrix = data_engineering.create_order_agent_4dmatrix(self.data)
+        data_engineering.enrich_market_data(self.data)
+        self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_4d_matrix(self.data)
+        self.order_agent_matrix = data_engineering.create_order_agent_4d_matrix(self.data)
 
     @staticmethod
     def get_random_action(agent):
+        global action
         if isinstance(agent, BuyOrderAgent):
             action = random.randint(0, 7)
         elif isinstance(agent, SellOrderAgent):
@@ -32,28 +33,37 @@ class Environment:
 
     def get_sell_signal_states_by_date(self, last_date):
         # get next day state, if next day state is not available, throws error
-        s = "generated sellSignalStates"
+        print("generated sellSignalStates")
+        s = pd.DataFrame({'date': [1], 'col2': [2]})
+        s = s.set_index('date')
         return s
 
     def get_buy_signal_states_by_date(self, last_date):
-        if last_date == None:
+        if last_date is None:
             # randomly pick a day from dataset
-            s = "generated buySignalStates - first"
+            print("generated buySignalStates - first")
+            s = pd.DataFrame({'date': [1], 'col2': [2]})
+            s = s.set_index('date')
         else:
-            s = "generated buySignalStates"
+            print("generated buySignalStates")
+            s = pd.DataFrame({'date': [1], 'col2': [2]})
+            s = s.set_index('date')
         return s
 
     def get_sell_order_states_by_date(self, last_date):
         # get next day state, if next day state is not available, throws error
-        s = "generated sellOrderStates"
-        
+        print("generated sellOrderStates")
+        s = pd.DataFrame({'date': [1], 'col2': [2]})
+        s = s.set_index('date')
         # s = self.order_agent_matrix['last_date']
         return s
 
     def get_buy_order_states_by_date(self, last_date):
         # get next day state, if next day state is not available, throws error
-        s = "generated buyOrderStates"
-        
+        print("generated buyOrderStates")
+        s = pd.DataFrame({'date': [1], 'col2': [2]})
+        s = s.set_index('date')
+
         # s = self.order_agent_matrix['last_date']
         return s
 

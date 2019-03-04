@@ -22,8 +22,19 @@ class SellOrderAgent(Agent):
         self.__buy_signal_agent = buy_signal_agent
 
     def process_action(self, action):
-        ma5 = 4
-        high = 1
+        market_data = self.environment.get_market_data_by_date_of_state(self.state)
+
+        if market_data is None:
+            # terminated
+            return True
+
+        ma5 = market_data['ma5']
+        high = market_data['high']
+
+        if ma5 is None or high is None:
+            # terminate
+            return True
+
         d = ma5 + action / 100 * ma5 - high
         print("processing sell order")
 
@@ -41,6 +52,7 @@ class SellOrderAgent(Agent):
             close = 3
             sp = close
             self.invoke_buy_signal_agent(sp)
+        return False
 
     def invoke_buy_signal_agent(self, sp):
         self.__buy_signal_agent.update_reward(False, self.bp, sp)

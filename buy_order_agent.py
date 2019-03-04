@@ -30,15 +30,15 @@ class BuyOrderAgent(Agent):
         # buy order agent consider state on T-1, and place order on T day
         market_data = self.environment.get_market_data_by_date_of_state(last_state_date + 1)
 
-        if market_data == None:
-            # terminated
+        if market_data is None:
+            # terminate
             return True
 
         ma5 = market_data['ma5']
         low = market_data['low']
 
-        if ma5 == None or low == None:
-            # terminated
+        if ma5 is None or low is None:
+            # terminate
             return True
 
         d = ma5 + action / 100 * ma5 - low
@@ -55,6 +55,7 @@ class BuyOrderAgent(Agent):
             reward = 0
             # self.model.fit(self.state, reward, action)
             self.invoke_buy_signal_agent()
+        return False
 
     def invoke_sell_signal_agent(self, bp, last_state_date):
         self.__sell_signal_agent.start_new_training(bp, last_state_date)

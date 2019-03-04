@@ -21,7 +21,7 @@ class SellSignalAgent(Agent):
 
     def process_action(self, sell_action, last_state_date):
         market_data = self.environment.get_market_data_by_date_of_state(self.state)
-        market_data['profit'] = ( self.bp - market_data['close'] ) / 2
+        market_data['profit'] = (self.bp - market_data['close']) / 2
         if not sell_action:
             # force sell signal agent to sell if profit is in certain condition
             if (market_data['profit'] > 0.3) or (market_data['profit'] < -0.2):
@@ -35,11 +35,11 @@ class SellSignalAgent(Agent):
 
     def process_next_state(self, last_state_date):
         self.state, sell_action = self.produce_state_and_get_action(last_state_date)
-        if self.state == None or action == None:
+        if self.state is None or sell_action is None:
             # stop training
             return True
         else:
-            this_state_date = state['date']
+            this_state_date = self.state['date']
             self.process_action(sell_action, this_state_date)
             return False
 

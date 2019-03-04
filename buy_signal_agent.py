@@ -22,7 +22,7 @@ class BuySignalAgent(Agent):
     def process_next_state(self, last_state_date=None):
         self.state, self.buy_action = self.produce_state_and_get_action(last_state_date)
 
-        if self.state == None or self.buy_action == None:
+        if self.state is None or self.buy_action is None:
             return True
         else:
             # get the date of this state
@@ -52,6 +52,7 @@ class BuySignalAgent(Agent):
 
     def invoke_buy_order_agent(self):
         # invoking buy order agent with the state of the stock at the same day
+        print(self.state['date'])
         self.__buy_order_agent.start_new_training(self.state)
 
     def start_new_training(self):

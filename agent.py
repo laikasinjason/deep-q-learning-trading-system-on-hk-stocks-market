@@ -7,7 +7,7 @@ class Agent:
 
     def produce_state_and_get_action(self, last_date=None):
         state = self.environment.produce_state(self, last_date)
-        if state == None:
+        if state is None:
             # case when next day's state is not available
             return None, None
         action = self.get_action(state)
