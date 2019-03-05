@@ -26,38 +26,43 @@ class BuySignalAgent(Agent):
             return True
         else:
             # get the date of this state
-            this_state_date = 1
-            self.process_action(self.buy_action, this_state_date)
-            return False
+            this_state_date = self.state.date
+            terminated = self.process_action(self.buy_action, this_state_date)
+            return terminated
 
     def process_action(self, buy_action, last_state_date):
         if not buy_action:
-            self.process_next_state(last_state_date)
+            terminated = self.process_next_state(last_state_date)
+            return terminated
         else:
             self.invoke_buy_order_agent()
+            return False
 
     def update_reward(self, from_buy_order_agent, bp=None, sp=None):
         if from_buy_order_agent:
             reward = 0
-            print("reward: " + str(reward) + ", state: " + str(self.state) + ", action: " + str(self.buy_action))
-            self.model.fit(self.state, reward, self.buy_action)
+            print("reward: " + str(reward) + ", state: " + str(self.state.date) + " , " + str(
+                self.state.value) + ", bp: " + str(bp) + ", sp: " + str(sp))
+            # self.model.fit(self.state, reward, self.buy_action)
 
         else:
             reward = ((1 - self.environment.transaction_cost) * sp - bp) / bp
-            print("reward: " + str(reward) + ", state: " + str(self.state) + ", action: " + str(self.buy_action))
-            self.model.fit(self.state, reward, self.buy_action)
+            print("reward: " + str(reward) + ", state: " + str(self.state.date) + " , " + str(
+                self.state.value) + ", bp: " + str(bp) + ", sp: " + str(sp))
+            # self.model.fit(self.state, reward, self.buy_action)
             self.__iteration = self.__iteration + 1
+            print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
             if self.__iteration < self.__num_train:
                 self.start_new_training()
 
     def invoke_buy_order_agent(self):
         # invoking buy order agent with the state of the stock at the same day
-        print(self.state.loc[1])
-        self.__buy_order_agent.start_new_training(self.state.name)
+        self.__buy_order_agent.start_new_training(self.state.date)
 
     def start_new_training(self):
         print("Buy signal - start new training")
         terminated = self.process_next_state()
         if terminated:
+            print(self.__iteration)
             if self.__iteration < self.__num_train:
                 self.start_new_training()

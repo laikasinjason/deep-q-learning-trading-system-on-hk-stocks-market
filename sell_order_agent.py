@@ -21,8 +21,8 @@ class SellOrderAgent(Agent):
     def set_buy_signal_agent(self, buy_signal_agent):
         self.__buy_signal_agent = buy_signal_agent
 
-    def process_action(self, action):
-        market_data = self.environment.get_market_data_by_date_of_state(self.state)
+    def process_action(self, action, date):
+        market_data = self.environment.get_market_data_by_date(date)
 
         if market_data is None:
             # terminated
@@ -41,13 +41,13 @@ class SellOrderAgent(Agent):
         if d <= 0:
             reward = math.exp(100 * d / high)
             sp = ma5 + action / 100 * ma5
-            self.model.fit(self.state, reward, action)
-
+            # self.model.fit(self.state, reward, action)
+            print("sell price: " + str(sp))
             self.invoke_buy_signal_agent(sp)
 
         else:
             reward = 0
-            self.model.fit(self.state, reward, action)
+            # self.model.fit(self.state, reward, action)
 
             close = 3
             sp = close
@@ -62,12 +62,12 @@ class SellOrderAgent(Agent):
         self.__buy_signal_agent.start_new_training()
 
     def start_new_training(self, bp, date):
-        print("Sell order - start new training " + date)
+        print("Sell order - start new training " + str(date))
         self.bp = bp
-        state = self.get_sell_order_states_by_date(date)
+        state = self.environment.get_sell_order_states_by_date(date)
         action = self.get_action(state)
 
-        terminated = self.process_action(action)
+        terminated = self.process_action(action, date)
 
         if terminated:
             self.restart_training()

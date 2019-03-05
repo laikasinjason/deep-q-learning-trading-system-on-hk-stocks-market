@@ -31,7 +31,7 @@ class Agent:
         iteration = 1000000  # use static epsilon for now
 
         # Choose epsilon based on the iteration
-        epsilon = self.get_epsilon_for_iteration(iteration)
+        epsilon = self.get_epsilon_for_iteration(iteration, end_epsilon=0.5)
 
         # Choose the action
         if random.random() < epsilon:
