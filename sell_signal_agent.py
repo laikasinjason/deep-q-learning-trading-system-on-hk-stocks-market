@@ -39,12 +39,12 @@ class SellSignalAgent(Agent):
             # stop training
             return True
         else:
-            this_state_date = self.state['date']
+            this_state_date = self.state.loc[1]
             self.process_action(sell_action, this_state_date)
             return False
 
     def invoke_sell_order_agent(self):
-        self.__sell_order_agent.start_new_training(self.bp, self.state)
+        self.__sell_order_agent.start_new_training(self.bp, self.state.name)
 
     def restart_training(self):
         # state is not available, restart from the top

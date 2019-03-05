@@ -61,9 +61,10 @@ class SellOrderAgent(Agent):
         # state is not available, restart from the top
         self.__buy_signal_agent.start_new_training()
 
-    def start_new_training(self, bp, state):
-        print("Sell order - start new training")
+    def start_new_training(self, bp, date):
+        print("Sell order - start new training " + date)
         self.bp = bp
+        state = self.get_sell_order_states_by_date(date)
         action = self.get_action(state)
 
         terminated = self.process_action(action)

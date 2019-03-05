@@ -52,8 +52,8 @@ class BuySignalAgent(Agent):
 
     def invoke_buy_order_agent(self):
         # invoking buy order agent with the state of the stock at the same day
-        print(self.state['date'])
-        self.__buy_order_agent.start_new_training(self.state)
+        print(self.state.loc[1])
+        self.__buy_order_agent.start_new_training(self.state.name)
 
     def start_new_training(self):
         print("Buy signal - start new training")

@@ -95,22 +95,20 @@ def create_turning_point_matrix_for_day_diff(data, day_diff, id_tp_array):
     # cal px diff of Tday's px and TP's px
     px_diff = ((data['close'] - px_shift) / px_shift).where(idx_tp_shift == 1)
     # binning and transform to one hot categorization
-    bins = [-np.inf, -0.2, -0.1, -0.05, 0, 0.05, 0.1, 0.2, np.inf]
     # fibonacci_bins = [-np.inf, -0.764, -0.618, -0.5, -0.382, 0, 0.382, 0.5, 0.618, 0.764, np.inf]
-    names = ['<-0.2', '-0.2--0.1', '-0.1--0.05', ' -0.05-0', '0-0.05', '0.05-0.1', '0.1-0.2', '>0.2']
     px_diff_bin = pd.cut(px_diff, bins, labels=names)
 
     return pd.get_dummies(px_diff_bin)
 
 
-def create_order_agent_4d_matrix(data):
+def create_technical_indicator_4d_matrix(data):
     if data is None:
         return None
     high_low_diff = (data['high'] - data['low']) / data['low']
     ma5_diff = (sma(data['close'], 5) - data['close']) / data['close']
     ma10_diff = (sma(data['close'], 10) - data['close']) / data['close']
     ma20_diff = (sma(data['close'], 20) - data['close']) / data['close']
-
+    
     high_low_diff_bin = pd.cut(high_low_diff, bins, labels=names)
     ma5_diff_bin = pd.cut(ma5_diff, bins, labels=names)
     ma10_diff_bin = pd.cut(ma10_diff, bins, labels=names)

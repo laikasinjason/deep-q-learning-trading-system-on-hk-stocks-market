@@ -67,11 +67,11 @@ class BuyOrderAgent(Agent):
         # state is not available, restart from the top
         self.__buy_signal_agent.start_new_training()
 
-    def start_new_training(self, state):
-        print("Buy order - start new training")
+    def start_new_training(self, date):
+        print("Buy order - start new training " + date )
+        state = self.get_buy_order_states_by_date(date)
         action = self.get_action(state)
-        this_state_date = state['date']  # get state's date
-        terminated = self.process_action(action, this_state_date)
+        terminated = self.process_action(action, date)
 
         if terminated:
             self.restart_training()
