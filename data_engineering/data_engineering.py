@@ -90,10 +90,11 @@ def create_turning_point_4d_matrix(data):
 
 def create_turning_point_matrix_for_day_diff(data, day_diff, id_tp_array):
     # shift the turning point array to certain day difference, with the close price of turning point
+    id_tp_array = pd.Series([int(i in id_tp_array) for i in range(len(data))])
     idx_tp_shift = id_tp_array.shift(day_diff)
-    px_shift = data['close'].shift(day_diff)
+    px_shift = data['Adj Close'].shift(day_diff)
     # cal px diff of Tday's px and TP's px
-    px_diff = ((data['close'] - px_shift) / px_shift).where(idx_tp_shift == 1)
+    px_diff = ((data['Adj Close'] - px_shift) / px_shift).where(idx_tp_shift == 1)
     # binning and transform to one hot categorization
     # fibonacci_bins = [-np.inf, -0.764, -0.618, -0.5, -0.382, 0, 0.382, 0.5, 0.618, 0.764, np.inf]
     px_diff_bin = pd.cut(px_diff, bins, labels=names)
