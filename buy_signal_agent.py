@@ -12,6 +12,7 @@ class BuySignalAgent(Agent):
         self.buy_action = None  # save the action needed to pass to fit method
         self.__num_train = num_train
         self.__iteration = 0
+        self.__error_toleration = 5
 
     def get_buy_order_agent(self):
         return self.__buy_order_agent
@@ -59,10 +60,19 @@ class BuySignalAgent(Agent):
         # invoking buy order agent with the state of the stock at the same day
         self.__buy_order_agent.start_new_training(self.state.date)
 
-    def start_new_training(self):
-        print("Buy signal - start new training")
-        terminated = self.process_next_state()
-        if terminated:
-            print(self.__iteration)
-            if self.__iteration < self.__num_train:
+    def start_new_training(self, terminated_by_other_agents=False):
+        if terminated_by_other_agents:
+            self.__error_toleration = self.__error_toleration - 1
+            print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: " + str(
+                self.__error_toleration))
+            if (self.__iteration < self.__num_train) and (self.__error_toleration > 0):
                 self.start_new_training()
+        else:
+            print("Buy signal - start new training")
+            terminated = self.process_next_state()
+            if terminated:
+                self.__error_toleration = self.__error_toleration - 1
+                print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: " + str(
+                    self.__error_toleration))
+                if (self.__iteration < self.__num_train) and (self.__error_toleration > 0):
+                    self.start_new_training()

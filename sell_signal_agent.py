@@ -48,7 +48,7 @@ class SellSignalAgent(Agent):
 
     def restart_training(self):
         # state is not available, restart from the top
-        self.__sell_order_agent.restart_training()
+        self.__sell_order_agent.restart_training(terminated_by_other_agents=True)
 
     def start_new_training(self, bp, last_state_date):
         print("Sell signal - start new training")

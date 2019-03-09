@@ -22,7 +22,13 @@ class SellOrderAgent(Agent):
         self.__buy_signal_agent = buy_signal_agent
 
     def process_action(self, action, date):
-        market_data = self.environment.get_market_data_by_date(date)
+        # sell order agent consider state on T-1, and place order on T day
+
+        try:
+            market_data = self.environment.get_market_data_by_date(date + 1)
+        except KeyError:
+            # not able to get next date's market data
+            return True
 
         if market_data is None:
             # terminated
@@ -57,9 +63,9 @@ class SellOrderAgent(Agent):
     def invoke_buy_signal_agent(self, sp):
         self.__buy_signal_agent.update_reward(False, self.bp, sp)
 
-    def restart_training(self):
+    def restart_training(self, terminated_by_other_agents=True):
         # state is not available, restart from the top
-        self.__buy_signal_agent.start_new_training()
+        self.__buy_signal_agent.start_new_training(terminated_by_other_agents)
 
     def start_new_training(self, bp, date):
         print("Sell order - start new training " + str(date))

@@ -18,22 +18,23 @@ class Environment:
 
     def __init__(self):
         self.data = None
-        self.transaction_cost = 1
+        self.transaction_cost = 0.01
         data_engineering.enrich_market_data(self.data)
 
         self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_4d_matrix(self.data)
         self.tech_indicator_matrix = data_engineering.create_technical_indicator_4d_matrix(self.data)
 
         # simulate data for testing
+        test_len = 5
         self.data = pd.DataFrame(
-            {'date': [i for i in range(100)], 'low': [2 * i for i in range(100)], 'high': [7 * i for i in range(100)],
-             'ma5': [3 * i for i in range(100)], 'close': [5 * i for i in range(100)]}).set_index('date')
+            {'date': [i for i in range(test_len)], 'low': [2 * i for i in range(test_len)], 'high': [7 * i for i in range(test_len)],
+             'ma5': [3 * i for i in range(test_len)], 'close': [5 * i for i in range(test_len)]}).set_index('date')
         self.turning_point_max = pd.DataFrame(
-            {'date': [i for i in range(100)], 'col2': [2 * i for i in range(100)]}).set_index('date')
+            {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
         self.turning_point_min = pd.DataFrame(
-            {'date': [i for i in range(100)], 'col2': [2 * i for i in range(100)]}).set_index('date')
+            {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
         self.tech_indicator_matrix = pd.DataFrame(
-            {'date': [i for i in range(100)], 'col2': [2 * i for i in range(100)]}).set_index('date')
+            {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
 
     @staticmethod
     def get_random_action(agent):

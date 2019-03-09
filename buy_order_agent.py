@@ -70,7 +70,7 @@ class BuyOrderAgent(Agent):
 
     def restart_training(self):
         # state is not available, restart from the top
-        self.__buy_signal_agent.start_new_training()
+        self.__buy_signal_agent.start_new_training(terminated_by_other_agents=True)
 
     def start_new_training(self, date):
         print("Buy order - start new training " + str(date))
