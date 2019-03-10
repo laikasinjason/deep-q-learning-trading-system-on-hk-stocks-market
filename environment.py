@@ -21,8 +21,8 @@ class Environment:
         self.transaction_cost = 0.01
         data_engineering.enrich_market_data(self.data)
 
-        self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_4d_matrix(self.data)
-        self.tech_indicator_matrix = data_engineering.create_technical_indicator_4d_matrix(self.data)
+        self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_3d_matrix(self.data)
+        self.tech_indicator_matrix = data_engineering.create_technical_indicator_3d_matrix(self.data)
 
         # simulate data for testing
         test_len = 5
