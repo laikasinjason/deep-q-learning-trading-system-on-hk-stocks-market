@@ -30,54 +30,59 @@ Different technical indicators, e.g. sma, high/low difference...
 
 Trading system work flow
 ------------------------
-## 1) Buy Signal Agent
-State of stock feeds into BSA, an action is generated as below
-    IF BUY:
-        Trigger Buy Order Agent 2)
-    IF NOT-BUY:
-        Go to 1) with next date of state
+#### 1) Buy Signal Agent
+State of stock feeds into BSA, an action is generated as below  
+    IF BUY:  
+        -  Trigger Buy Order Agent 2)  
+    IF NOT-BUY:  
+        -  Go to 1) with next date of state  
         
-## 2) Buy Order Agent
-BOA takes the same state from BSA and determine the buy price of stocks according to the below formula
-   buy price = ma5 + action / 100 * ma5, where action is the output of the agent
-   The order is placed the next day after buy signal is generated in BSA.
-   IF buy price > next day's low price:
-       Order is executed, trigger Sell Signal Agent
-   IF buy price < next day's low price:
-       Order is not executed, go back to 1)
+#### 2) Buy Order Agent
+BOA takes the same state from BSA and determine the buy price of stocks according to the below formula  
+   ```
+   buy price = ma5 + action / 100 * ma5
+   ```
+   where action is the output of the agent  
+   The order is placed the next day after buy signal is generated in BSA.  
+   IF buy price > next day's low price:  
+       -  Order is executed, trigger Sell Signal Agent  
+   IF buy price < next day's low price:  
+       -  Order is not executed, go back to 1)  
 
-## 3) Sell Signal Agent
-SSA takes state of stock starting with the day after the buy order is executed, action is generated as below
-   IF HOLD:
-       Go to 3)
-   IF SELL:
-       Trigger Sell Order Agent 2)
+#### 3) Sell Signal Agent
+SSA takes state of stock starting with the day after the buy order is executed, action is generated as below  
+   IF HOLD:  
+       -  Go to 3)  
+   IF SELL:  
+       -  Trigger Sell Order Agent 2)  
        
-## 4) Sell Order Agent
-SOA takes the same state from SSA and determine the sell price of stocks according to the below formula
-   sell price = ma5 + action / 100 * ma5
-   The order is placed the next day after sell signal is generated in SSA.
-   IF sell price < next day's high price:
-       Order is executed, position is closed, go to 1)
-   IF sell price > next day's high price:
-       Order is executed at that day's close instead, position is closed, go to 1)
+#### 4) Sell Order Agent
+SOA takes the same state from SSA and determine the sell price of stocks according to the below formula  
+   ```
+   sell price = ma5 + action / 100 * ma5  
+   ```
+   The order is placed the next day after sell signal is generated in SSA.  
+   IF sell price < next day's high price:  
+       -  Order is executed, position is closed, go to 1)  
+   IF sell price > next day's high price:  
+       -  Order is executed at that day's close instead, position is closed, go to 1)  
        
        
 Rewards
 -------
-## Buy Signal Agent
-rewards = 0 if order is not successfully placed.
+#### Buy Signal Agent
+rewards = 0 if order is not successfully placed.  
 rewards = ((1-transactional cost) * sell price - buy price) / buy price  if position is closed by SOA
 
-## Buy Order Agent
-price diff = buy price - next day's low price
-rewards = exp(-100 * price diff / low price) if price diff >= 0
+#### Buy Order Agent
+price diff = buy price - next day's low price  
+rewards = exp(-100 * price diff / low price) if price diff >= 0  
 rewards = 0 if price diff < 0
 
-## Sell Signal Agent
+#### Sell Signal Agent
 rewards = rate of change of close price 
 
-## Sell Order Agent
-price diff = sell price - next day's high price
-rewards = exp(100 * price diff / high price) if price diff <= 0
+#### Sell Order Agent
+price diff = sell price - next day's high price  
+rewards = exp(100 * price diff / high price) if price diff <= 0  
 rewards = 0 if price diff > 0
