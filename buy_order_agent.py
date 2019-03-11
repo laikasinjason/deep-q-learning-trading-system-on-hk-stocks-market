@@ -29,18 +29,20 @@ class BuyOrderAgent(Agent):
     def process_action(self, action, last_state_date):
         # buy order agent consider state on T-1, and place order on T day
 
-        try:
-            market_data = self.environment.get_market_data_by_date(last_state_date + 1)
-        except KeyError:
-            # not able to get next date's market data
+        next_date = self.environment.get_next_day_of_state(date)
+        if next_date is None:
+        # not able to get next date's market data
             return True
+            
+        market_data = self.environment.get_market_data_by_date(next_date)
+
 
         if market_data is None:
             # terminate
             return True
 
         ma5 = market_data['ma5']
-        low = market_data['low']
+        low = market_data['Low']
 
         if ma5 is None or low is None:
             # terminate
@@ -55,7 +57,7 @@ class BuyOrderAgent(Agent):
             # self.model.fit(self.state, reward, action)
             # last state date for sell signal becomes T day, start training on T+1
             print("buy price: " + str(bp))
-            self.invoke_sell_signal_agent(bp, last_state_date + 1)
+            self.invoke_sell_signal_agent(bp, next_date)
         else:
             reward = 0
             # self.model.fit(self.state, reward, action)

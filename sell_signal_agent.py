@@ -7,8 +7,8 @@ class SellSignalAgent(Agent):
         super().__init__(environment)
 
         self.bp = None
-        # technical indicator 4*8
-        self.model = Model(2, 50)
+        # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
+        self.model = Model(7, 120)
         self.__sell_order_agent = sell_order_agent
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method

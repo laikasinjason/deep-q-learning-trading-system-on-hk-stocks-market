@@ -9,8 +9,8 @@ class SellOrderAgent(Agent):
         super().__init__(environment)
 
         self.bp = None
-        # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
-        self.model = Model(7, 120)
+        # technical indicator 4*8
+        self.model = Model(2, 32)
         self.__buy_signal_agent = buy_signal_agent
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
@@ -24,11 +24,13 @@ class SellOrderAgent(Agent):
     def process_action(self, action, date):
         # sell order agent consider state on T-1, and place order on T day
 
-        try:
-            market_data = self.environment.get_market_data_by_date(date + 1)
-        except KeyError:
-            # not able to get next date's market data
+        next_date = self.environment.get_next_day_of_state(date)
+        if next_date is None:
+        # not able to get next date's market data
             return True
+        
+        market_data = self.environment.get_market_data_by_date(next_date)
+
 
         if market_data is None:
             # terminated

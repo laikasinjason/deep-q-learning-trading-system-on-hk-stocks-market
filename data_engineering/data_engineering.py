@@ -5,6 +5,11 @@ bins = [-np.inf, -0.1, -0.05, -0.03, 0, 0.03, 0.05, 0.1, np.inf]
 names = ['<-0.1', '-0.1--0.05', '-0.05--0.03', ' -0.03-0', '0-0.03', '0.03-0.05', '0.05-0.1', '>0.1']
 
 
+def load_data(csvFile):
+    data = pd.read_csv("../../HKDailyStocksQuotes/" + csvFile, index_col = 'Date')
+    data.index = pd.to_datetime(data.index,  format="%Y%m%d")
+    return data
+
 def turning_points(array):
     """ turning_points(array) -> min_indices, max_indices
     Finds the turning points within an 1D array and returns the indices of the minimum and
@@ -42,30 +47,19 @@ def sma(data, period=5):
     return data.rolling(period).mean()
 
 
-def get_yesterday_sma():
-    # the buy/sell price of order agent is determined by last day's sma
-    pass
-
-
-def get_today_close():
-    # used to close the position at day end if sell price is not met
-    pass
-
-
-def get_today_low():
-    # used to determined if buy order is successfully executed
-    pass
-
-
-def get_today_high():
-    # used to determined if sell order is successfully executed
-    pass
+def get_next_day(date, data):
+    # next row in data
+    next_index = data.index.get_loc(date)+1
+    if(next_index >= len(data.index)):
+        return None
+    else:
+        return data.index[data.index.get_loc(date)+1]
 
 
 def get_profit(data, buy_price):
     # used for sell signal agent 
     # 100×(closing price of the current day - buy price)/buy price
-    return (data['close'] - buy_price) / buy_price
+    return (data['Close'] - buy_price) / buy_price
 
 
 def create_turning_point_3d_matrix(data):
@@ -150,5 +144,5 @@ def enrich_market_data(data):
     if data is None:
         return
 
-    data['ma5'] = sma(data['close'], 5)
-    data['rate_of_close'] = data['close'].pct_change()
+    data['ma5'] = sma(data['Close'], 5)
+    data['rate_of_close'] = data['Close'].pct_change()

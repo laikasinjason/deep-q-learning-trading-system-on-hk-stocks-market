@@ -27,8 +27,6 @@ class Model:
     """
 
     def __create_model(self, alpha=0.00025):
-        # # Assuming that the input frames aimgre still encoded from 0 to 255. Transforming to [0, 1].
-        # #         normalized = keras.layers.Lambda(lambda x: x / 255.0)(frames_input)
 
         input = keras.layers.Input((self.n_states,), name='inputs')
         layer_1 = keras.layers.Dense(256, activation='relu')(input)
