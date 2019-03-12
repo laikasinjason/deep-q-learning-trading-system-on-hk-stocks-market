@@ -8,7 +8,7 @@ class SellSignalAgent(Agent):
 
         self.bp = None
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
-        self.model = SignalModel(7, 120)
+        self.model = SignalModel(2, 120)
         self.__sell_order_agent = sell_order_agent
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
@@ -21,7 +21,7 @@ class SellSignalAgent(Agent):
 
     def process_action(self, sell_action, last_state_date):
         market_data = self.environment.get_market_data_by_date(last_state_date)
-        market_data['profit'] = (self.bp - market_data['close']) / market_data['close']
+        market_data['profit'] = (self.bp - market_data['Close']) / market_data['Close']
         if not sell_action:
             # force sell signal agent to sell if profit is in certain condition
             if (market_data['profit'] > 0.3) or (market_data['profit'] < -0.2):

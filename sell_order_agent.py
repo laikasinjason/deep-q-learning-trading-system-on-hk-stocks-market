@@ -10,7 +10,7 @@ class SellOrderAgent(Agent):
 
         self.bp = None
         # technical indicator 4*8
-        self.model = OrderModel(2, 32)
+        self.model = OrderModel(7, 32)
         self.__buy_signal_agent = buy_signal_agent
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
@@ -22,36 +22,32 @@ class SellOrderAgent(Agent):
         self.__buy_signal_agent = buy_signal_agent
 
     def process_action(self, action, date):
-        # transform the action to a value in percentage
-        action_value = self.model.action_map_to_value(action)
-        
         # sell order agent consider state on T-1, and place order on T day
 
         next_date = self.environment.get_next_day_of_state(date)
         if next_date is None:
-        # not able to get next date's market data
+            # not able to get next date's market data
             return True
-        
-        market_data = self.environment.get_market_data_by_date(next_date)
 
+        market_data = self.environment.get_market_data_by_date(next_date)
 
         if market_data is None:
             # terminated
             return True
 
         ma5 = market_data['ma5']
-        high = market_data['high']
+        high = market_data['High']
 
         if ma5 is None or high is None:
             # terminate
             return True
 
-        d = ma5 + action_value / 100 * ma5 - high
+        d = ma5 + action / 100 * ma5 - high
         print("processing sell order")
 
         if d <= 0:
             reward = math.exp(100 * d / high)
-            sp = ma5 + action_value / 100 * ma5
+            sp = ma5 + action / 100 * ma5
             # self.model.fit(self.state.value, reward, action)
             print("sell price: " + str(sp))
             self.invoke_buy_signal_agent(sp)

@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pandas as pd
 
@@ -16,8 +14,8 @@ class Environment:
             self.date = date
             self.value = value
 
-    def __init__(self, csvFile, transaction_cost=0.01):
-        self.data = data_engineering.load_data(csvFile)
+    def __init__(self, csv_file, transaction_cost=0.01):
+        self.data = data_engineering.load_data(csv_file)
         self.transaction_cost = transaction_cost
         data_engineering.enrich_market_data(self.data)
 
@@ -27,27 +25,15 @@ class Environment:
         # simulate data for testing
         test_len = 5
         self.data = pd.DataFrame(
-            {'date': [i for i in range(test_len)], 'low': [2 * i for i in range(test_len)], 'high': [7 * i for i in range(test_len)],
-             'ma5': [3 * i for i in range(test_len)], 'close': [5 * i for i in range(test_len)]}).set_index('date')
+            {'date': [i for i in range(test_len)], 'Low': [2 * i for i in range(test_len)],
+             'High': [7 * i for i in range(test_len)],
+             'ma5': [3 * i for i in range(test_len)], 'Close': [5 * i for i in range(test_len)]}).set_index('date')
         self.turning_point_max = pd.DataFrame(
             {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
         self.turning_point_min = pd.DataFrame(
             {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
         self.tech_indicator_matrix = pd.DataFrame(
             {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
-
-    @staticmethod
-    def get_random_action(agent):
-        global action
-        if isinstance(agent, BuyOrderAgent):
-            action = random.randint(0, 7)
-        elif isinstance(agent, SellOrderAgent):
-            action = random.randint(0, 7)
-        elif isinstance(agent, BuySignalAgent):
-            action = random.randint(0, 1)
-        elif isinstance(agent, SellSignalAgent):
-            action = random.randint(0, 1)
-        return action
 
     def get_sell_signal_states_by_date(self, bp, date):
         # get next day state, if next day state is not available, throws error
@@ -59,7 +45,7 @@ class Environment:
             profit_bin = pd.get_dummies(pd.cut(temp_series, data_engineering.bins, labels=data_engineering.names))
             if profit == 0.0:
                 profit_bin[:] = 0
-                
+
             tp_max = self.turning_point_max.loc[date]
             tp_min = self.turning_point_min.loc[date]
             tech_indicator = self.tech_indicator_matrix.loc[date]
@@ -112,10 +98,11 @@ class Environment:
             print("ERROR getting buy order state for date " + str(date))
             return None
 
-        
-    def get_next_day_of_state(date):
-        return data_engineering.get_next_day(date, self.data)
-        
+    def get_next_day_of_state(self, date):
+        next_day = data_engineering.get_next_day(date, self.data)
+        if next_day is None:
+            print("ERROR getting state for date " + str(date))
+        return next_day
 
     def get_market_data_by_date(self, date):
         market_data = self.data.loc[date]
@@ -124,10 +111,17 @@ class Environment:
         return market_data
 
     def produce_state(self, agent, last_date):
-        next_day = self.get_next_day_of_state(last_date)
-        if next_day is None:
-            return None
+        if (last_date is None) and isinstance(agent, BuySignalAgent):
+            # randomly pick a day from dataset
+            date = self.data.sample().index.values[0]
+            print("generated buySignalStates - first")
+            s = self.get_buy_signal_states_by_date(date)
+
         else:
+            next_day = self.get_next_day_of_state(last_date)
+            if next_day is None:
+                return None
+
             if isinstance(agent, BuyOrderAgent):
                 s = self.get_buy_order_states_by_date(next_day)
             elif isinstance(agent, SellOrderAgent):
@@ -143,7 +137,6 @@ class Environment:
                 else:
                     s = self.get_buy_signal_states_by_date(next_day)
 
-
-            if s is not None:
-                print("State: " + str(s.date) + " , " + str(s.value))
-            return s
+        if s is not None:
+            print("State: " + str(s.date) + " , " + str(s.value))
+        return s

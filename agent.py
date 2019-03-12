@@ -35,15 +35,15 @@ class Agent:
 
         # Choose the action
         if random.random() < epsilon:
-            action = self.environment.get_random_action(self)
+            action = self.model.get_random_action()
         else:
-            action = self.environment.get_random_action(self)
-            
+            action = self.model.get_random_action()
+
             # if isinstance(agent, BuyOrderAgent) or isinstance(agent, SellOrderAgent):
             #     action = self.model.predict(state)
             # else:
             #     action = self.model.predict(state).argmax()
-                
+
         print(self.__class__.__name__ + ": " + str(action))
 
         return action
