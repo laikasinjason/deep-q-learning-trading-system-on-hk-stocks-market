@@ -3,6 +3,7 @@ import pandas as pd
 
 bins = [-np.inf, -0.1, -0.05, -0.03, 0, 0.03, 0.05, 0.1, np.inf]
 names = ['<-0.1', '-0.1--0.05', '-0.05--0.03', ' -0.03-0', '0-0.03', '0.03-0.05', '0.05-0.1', '>0.1']
+no_data_to_remove = 15
 
 
 def load_data(csvFile):
@@ -68,28 +69,32 @@ def create_turning_point_3d_matrix(data):
     # create turning points series
     idx_min, idx_max = turning_points(data['Adj Close'])
 
-    max_matrix2 = create_turning_point_matrix_for_day_diff(data, 2, idx_max)
-    max_matrix3 = create_turning_point_matrix_for_day_diff(data, 3, idx_max)
-    max_matrix5 = create_turning_point_matrix_for_day_diff(data, 5, idx_max)
-    max_matrix10 = create_turning_point_matrix_for_day_diff(data, 10, idx_max)
-    max_matrix15 = create_turning_point_matrix_for_day_diff(data, 15, idx_max)
-
+    # remove the first 15 rows explicitly
+    max_matrix2 = create_turning_point_matrix_for_day_diff(data, 2, idx_max)[no_data_to_remove:]
+    max_matrix3 = create_turning_point_matrix_for_day_diff(data, 3, idx_max)[no_data_to_remove:]
+    max_matrix5 = create_turning_point_matrix_for_day_diff(data, 5, idx_max)[no_data_to_remove:]
+    max_matrix10 = create_turning_point_matrix_for_day_diff(data, 10, idx_max)[no_data_to_remove:]
+    max_matrix15 = create_turning_point_matrix_for_day_diff(data, 15, idx_max)[no_data_to_remove:]
+    
     result_max = pd.concat([max_matrix2, max_matrix3, max_matrix5, max_matrix10, max_matrix15], keys=[2, 3, 5, 10, 15])
     result_max.index = result_max.index.swaplevel(1, 0)
     result_max = result_max.sort_index()
     result_max.index.names = ['Date', 'DayDiff']
+    result_max.fillna(0)
 
-    min_matrix2 = create_turning_point_matrix_for_day_diff(data, 2, idx_min)
-    min_matrix3 = create_turning_point_matrix_for_day_diff(data, 3, idx_min)
-    min_matrix5 = create_turning_point_matrix_for_day_diff(data, 5, idx_min)
-    min_matrix10 = create_turning_point_matrix_for_day_diff(data, 10, idx_min)
-    min_matrix15 = create_turning_point_matrix_for_day_diff(data, 15, idx_min)
+    # remove the first 15 rows explicitly
+    min_matrix2 = create_turning_point_matrix_for_day_diff(data, 2, idx_min)[no_data_to_remove:]
+    min_matrix3 = create_turning_point_matrix_for_day_diff(data, 3, idx_min)[no_data_to_remove:]
+    min_matrix5 = create_turning_point_matrix_for_day_diff(data, 5, idx_min)[no_data_to_remove:]
+    min_matrix10 = create_turning_point_matrix_for_day_diff(data, 10, idx_min)[no_data_to_remove:]
+    min_matrix15 = create_turning_point_matrix_for_day_diff(data, 15, idx_min)[no_data_to_remove:]
 
     result_min = pd.concat([min_matrix2, min_matrix3, min_matrix5, min_matrix10, min_matrix15], keys=[2, 3, 5, 10, 15])
     # rotate the matrix axes
     result_min.index = result_min.index.swaplevel(1, 0)
     result_min = result_min.sort_index()
     result_min.index.names = ['Date', 'DayDiff']
+    result_min.fillna(0)
 
     return result_max, result_min
 
@@ -124,19 +129,26 @@ def create_technical_indicator_3d_matrix(data):
     ma5_diff_bin = pd.cut(ma5_diff, bins, labels=names)
     ma10_diff_bin = pd.cut(ma10_diff, bins, labels=names)
     ma20_diff_bin = pd.cut(ma20_diff, bins, labels=names)
-
+    
     result_hl_diff = pd.get_dummies(high_low_diff_bin)
     result_ma5_diff = pd.get_dummies(ma5_diff_bin)
     result_ma10_diff = pd.get_dummies(ma10_diff_bin)
     result_ma20_diff = pd.get_dummies(ma20_diff_bin)
-
-    result_matrix = pd.concat([result_hl_diff, result_ma5_diff, result_ma10_diff, result_ma20_diff],
-                              keys=['hl_diff', 'ma5_diff', 'ma10_diff', 'ma20_diff'])
+    result_hl_diff[high_low_diff==0] = 0 # remove 0 value
+    result_ma5_diff[ma5_diff==0] = 0 # remove 0 value
+    result_ma10_diff[ma10_diff==0] = 0 # remove 0 value
+    result_ma20_diff[ma20_diff==0] = 0 # remove 0 value
+    result_hl_diff = result_hl_diff[no_data_to_remove:]
+    result_ma5_diff = result_hl_diff[no_data_to_remove:]
+    result_ma10_diff = result_hl_diff[no_data_to_remove:]
+    result_ma20_diff = result_hl_diff[no_data_to_remove:]
+    
+    result_matrix = pd.concat([result_hl_diff, result_ma5_diff, result_ma10_diff, result_ma20_diff], keys=['hl_diff', 'ma5_diff', 'ma10_diff', 'ma20_diff'])
     # rotate result matrix axes
     result_matrix.index = result_matrix.index.swaplevel(1, 0)
     result_matrix = result_matrix.sort_index()
     result_matrix.index.names = ['Date', 'Indicator']
-
+    
     return result_matrix
 
 

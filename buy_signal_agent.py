@@ -1,12 +1,12 @@
 from agent import Agent
-from model import Model
+from model import SignalModel
 
 
 class BuySignalAgent(Agent):
     def __init__(self, environment, num_train, buy_order_agent=None):
         super().__init__(environment)
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8
-        self.model = Model(2, 112)
+        self.model = SignalModel(2, 112)
         self.__buy_order_agent = buy_order_agent
         self.state = None  # save the state to be trained
         self.buy_action = None  # save the action needed to pass to fit method
@@ -44,13 +44,13 @@ class BuySignalAgent(Agent):
             reward = 0
             print("reward: " + str(reward) + ", state: " + str(self.state.date) + " , " + str(
                 self.state.value) + ", bp: " + str(bp) + ", sp: " + str(sp))
-            # self.model.fit(self.state, reward, self.buy_action)
+            # self.model.fit(self.state.value, reward, self.buy_action)
 
         else:
             reward = ((1 - self.environment.transaction_cost) * sp - bp) / bp
             print("reward: " + str(reward) + ", state: " + str(self.state.date) + " , " + str(
                 self.state.value) + ", bp: " + str(bp) + ", sp: " + str(sp))
-            # self.model.fit(self.state, reward, self.buy_action)
+            # self.model.fit(self.state.value, reward, self.buy_action)
             self.__iteration = self.__iteration + 1
             print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
             if self.__iteration < self.__num_train:

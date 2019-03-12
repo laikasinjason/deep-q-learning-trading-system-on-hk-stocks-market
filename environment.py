@@ -112,9 +112,6 @@ class Environment:
             print("ERROR getting buy order state for date " + str(date))
             return None
 
-    def load_data(self):
-        # load from csv/ db
-        pass
         
     def get_next_day_of_state(date):
         return data_engineering.get_next_day(date, self.data)
@@ -127,22 +124,26 @@ class Environment:
         return market_data
 
     def produce_state(self, agent, last_date):
-        if isinstance(agent, BuyOrderAgent):
-            s = self.get_buy_order_states_by_date(last_date + 1)
-        elif isinstance(agent, SellOrderAgent):
-            s = self.get_sell_order_states_by_date(last_date + 1)
-        elif isinstance(agent, BuySignalAgent):
-            if last_date is None:
-                # randomly pick a day from dataset
-                # date =98
-                date = self.data.sample().index.values[0]
-                print("generated buySignalStates - first")
-                s = self.get_buy_signal_states_by_date(date)
-            else:
-                s = self.get_buy_signal_states_by_date(last_date + 1)
-        elif isinstance(agent, SellSignalAgent):
-            s = self.get_sell_signal_states_by_date(agent.bp, last_date + 1)
+        next_day = self.get_next_day_of_state(last_date)
+        if next_day is None:
+            return None
+        else:
+            if isinstance(agent, BuyOrderAgent):
+                s = self.get_buy_order_states_by_date(next_day)
+            elif isinstance(agent, SellOrderAgent):
+                s = self.get_sell_order_states_by_date(next_day)
+            elif isinstance(agent, SellSignalAgent):
+                s = self.get_sell_signal_states_by_date(agent.bp, next_day)
+            elif isinstance(agent, BuySignalAgent):
+                if last_date is None:
+                    # randomly pick a day from dataset
+                    date = self.data.sample().index.values[0]
+                    print("generated buySignalStates - first")
+                    s = self.get_buy_signal_states_by_date(date)
+                else:
+                    s = self.get_buy_signal_states_by_date(next_day)
 
-        if s is not None:
-            print(str(s.date) + " , " + str(s.value))
-        return s
+
+            if s is not None:
+                print("State: " + str(s.date) + " , " + str(s.value))
+            return s

@@ -1,5 +1,5 @@
 from agent import Agent
-from model import Model
+from model import SignalModel
 
 
 class SellSignalAgent(Agent):
@@ -8,7 +8,7 @@ class SellSignalAgent(Agent):
 
         self.bp = None
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
-        self.model = Model(7, 120)
+        self.model = SignalModel(7, 120)
         self.__sell_order_agent = sell_order_agent
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
@@ -28,7 +28,7 @@ class SellSignalAgent(Agent):
                 self.invoke_sell_order_agent()
             else:
                 reward = market_data['rate_of_close']
-                # self.model.fit(self.state, reward, sell_action)
+                # self.model.fit(self.state.value, reward, sell_action)
                 self.process_next_state(last_state_date)
         else:
             self.invoke_sell_order_agent()
