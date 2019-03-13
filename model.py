@@ -50,11 +50,14 @@ class Model:
         return loss
 
     def predict(self, state):
-        return self.model.predict(state)
+        action_pos = self.model.predict(state).argmax()
+        print("Predicted action: " + action)
+        action = self.one_hot_encoder.transform([[action_pos]])
+        return self.action_map_to_value(action)
 
     def get_random_action(self):
         action = self.one_hot_encoder.transform([[random.randint(0, len(self.one_hot_encoder.active_features_) - 1)]])
-        print(action)
+        print("Random action: " + action)
         return self.action_map_to_value(action)
 
     def action_map_to_value(self, search_action):
@@ -130,20 +133,21 @@ class SignalModel(Model):
 
 
 class SellSignalModel(SignalModel):
+    gamma = 0.99
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
 
     # override the fit method, since sell signal agent has diff training algo
-    def fit(self, states, reward, action):
+    def fit(self, state, reward, action, next_state):
         # Run one fast-forward to get the Q-values for all actions
-        target = self.model.predict(states)
-        next_Q_values = target_model.predict(next_states)
-        new_Q_values = rewards + gamma * np.max(next_Q_values, axis=1)
+        target = self.model.predict(state)
+        next_Q_values = self.model.predict(next_state)
+        new_Q_values = reward + self.gamma * np.max(next_Q_values, axis=1)
 
         # Set the new Q values to target
         one_hot_action = self.one_hot_encoder.transform(action)
         target[one_hot_action.astype(bool)] = new_Q_values
 
-        loss = model.fit(states, target, epochs=1, batch_size=1, verbose=0)
+        loss = model.fit(state, target, epochs=1, batch_size=1, verbose=0)
 
         return loss
