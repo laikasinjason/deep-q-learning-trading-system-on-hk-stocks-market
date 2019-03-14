@@ -28,16 +28,19 @@ class Agent:
         return epsilon
 
     def get_action(self, state):
-        iteration = 1000000  # use static epsilon for now
-
-        # Choose epsilon based on the iteration
-        epsilon = self.get_epsilon_for_iteration(iteration, end_epsilon=0.5)
-
-        # Choose the action
-        if random.random() < epsilon:
-            action = self.model.get_random_action()
-        else:
+        if self.environment.get_evaluation_mode():
             action = self.model.predict(state)
+        else:
+            iteration = 1000000  # use static epsilon for now
+
+            # Choose epsilon based on the iteration
+            epsilon = self.get_epsilon_for_iteration(iteration, end_epsilon=0.5)
+
+            # Choose the action
+            if random.random() < epsilon:
+                action = self.model.get_random_action()
+            else:
+                action = self.model.predict(state)
 
         print(self.__class__.__name__ + ": " + str(action))
 

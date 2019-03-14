@@ -48,13 +48,19 @@ class SellOrderAgent(Agent):
         if d <= 0:
             reward = math.exp(100 * d / high)
             sp = ma5 + action / 100 * ma5
-            # self.model.fit(self.state.value, reward, action)
+            # if not self.environment.get_evaluation_mode():
+                # self.model.fit(self.state.value, reward, action)
+            # else:
+                # profit = (1 - self.environment.transaction_cost) * sp - bp
+                # record = {'sp' : sp, 'date' : next_date, 'profit', profit}
+                # self.environment.record(record)
             print("sell price: " + str(sp))
             self.invoke_buy_signal_agent(sp)
 
         else:
             reward = 0
-            # self.model.fit(self.state.value, reward, action)
+            # if not self.environment.get_evaluation_mode():
+                # self.model.fit(self.state.value, reward, action)
 
             close = 3
             sp = close

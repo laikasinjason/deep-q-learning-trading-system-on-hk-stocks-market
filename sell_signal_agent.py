@@ -45,7 +45,8 @@ class SellSignalAgent(Agent):
                 self.invoke_sell_order_agent()
             else:
                 reward = roc
-                # self.model.fit(self.state.value, reward, sell_action, next_state)
+                # if not self.environment.get_evaluation_mode():
+                    # self.model.fit(self.state.value, reward, sell_action, next_state)
                 self.process_next_state(last_state_date)
         else:
             self.invoke_sell_order_agent()

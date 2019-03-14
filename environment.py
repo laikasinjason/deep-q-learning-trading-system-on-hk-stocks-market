@@ -14,13 +14,16 @@ class Environment:
             self.date = date
             self.value = value
 
-    def __init__(self, csv_file, transaction_cost=0.01):
+    def __init__(self, csv_file, progress_recorder, transaction_cost=0.01):
         self.data = data_engineering.load_data(csv_file)
         self.transaction_cost = transaction_cost
         data_engineering.enrich_market_data(self.data)
 
         self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_3d_matrix(self.data)
         self.tech_indicator_matrix = data_engineering.create_technical_indicator_3d_matrix(self.data)
+        
+        self.__evaluation_mode = False
+        self.progress_recorder = progress_recorder
 
         # simulate data for testing
         test_len = 5
@@ -140,3 +143,25 @@ class Environment:
         if s is not None:
             print("State: " + str(s.date) + " , " + str(s.value))
         return s
+        
+    def get_evaluation_mode(self):
+        return self.__evaluation_mode
+        
+    def set_evaluation_mode(self, mode):
+        self.__evaluation_mode = mode
+        
+    def record(**data):
+        # date,bp,sp,profit
+        date = data['date']
+        bp = 0
+        sp = 0
+        profit = 0
+        if 'bp' in data.keys():
+            bp = data['bp']
+        if 'sp' in data.keys():
+            sp = data['sp']
+        if 'profit' in data.keys():
+            profit = data['profit']
+            
+        result = str(date)+","+str(bp)+","+str(sp)+","+str(profit)+"\n"
+        self.progress_recorder.write_to_file(result)

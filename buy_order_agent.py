@@ -53,13 +53,18 @@ class BuyOrderAgent(Agent):
         if d >= 0:
             reward = math.exp(-100 * d / low)
             bp = ma5 + action / 100 * ma5
-            # self.model.fit(self.state.value, reward, action)
+            # if not self.environment.get_evaluation_mode():
+                # self.model.fit(self.state.value, reward, action)
+            # else:
+                # record = {'bp' : bp, 'date' : next_date}
+                # self.environment.record(record)
             # last state date for sell signal becomes T day, start training on T+1
             print("buy price: " + str(bp))
             self.invoke_sell_signal_agent(bp, next_date)
         else:
             reward = 0
-            # self.model.fit(self.state.value, reward, action)
+            # if not self.environment.get_evaluation_mode():
+                # self.model.fit(self.state.value, reward, action)
             self.invoke_buy_signal_agent()
         return False
 
