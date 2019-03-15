@@ -26,7 +26,7 @@ class SellSignalAgent(Agent):
         
         if (market_data is None) or (next_day is None):
             # terminated
-            return True
+            self.environment.terminate_epoch()
 
         # for training
         next_state = self.environment.get_sell_signal_states_by_date(next_day)
@@ -36,7 +36,7 @@ class SellSignalAgent(Agent):
 
         if close is None:
             # terminate
-            return True
+            self.environment.terminate_epoch()
             
         market_data['profit'] = (self.bp - close) / close
         if not sell_action:
@@ -55,22 +55,15 @@ class SellSignalAgent(Agent):
         self.state, sell_action = self.produce_state_and_get_action(last_state_date)
         if self.state is None or sell_action is None:
             # stop training
-            return True
+            self.environment.terminate_epoch()
         else:
             this_state_date = self.state.date
             self.process_action(sell_action, this_state_date)
-            return False
 
     def invoke_sell_order_agent(self):
         self.__sell_order_agent.start_new_training(self.bp, self.state.date)
 
-    def restart_training(self):
-        # state is not available, restart from the top
-        self.__sell_order_agent.restart_training(terminated_by_other_agents=True)
-
     def start_new_training(self, bp, last_state_date):
         print("Sell signal - start new training")
         self.bp = bp
-        terminated = self.process_next_state(last_state_date)
-        if terminated:
-            self.restart_training()
+        self.process_next_state(last_state_date)

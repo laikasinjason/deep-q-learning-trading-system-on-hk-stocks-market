@@ -3,16 +3,13 @@ from model import SignalModel
 
 
 class BuySignalAgent(Agent):
-    def __init__(self, environment, num_train, buy_order_agent=None):
+    def __init__(self, environment, buy_order_agent=None):
         super().__init__(environment)
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8
         self.model = SignalModel(2, 112)
         self.__buy_order_agent = buy_order_agent
         self.state = None  # save the state to be trained
         self.buy_action = None  # save the action needed to pass to fit method
-        self.__num_train = num_train
-        self.__iteration = 0
-        self.__error_toleration = 5
 
     def get_buy_order_agent(self):
         return self.__buy_order_agent
@@ -24,20 +21,17 @@ class BuySignalAgent(Agent):
         self.state, self.buy_action = self.produce_state_and_get_action(last_state_date)
 
         if self.state is None or self.buy_action is None:
-            return True
+            self.environment.terminate_epoch()
         else:
             # get the date of this state
             this_state_date = self.state.date
-            terminated = self.process_action(self.buy_action, this_state_date)
-            return terminated
+            self.process_action(self.buy_action, this_state_date)
 
     def process_action(self, buy_action, last_state_date):
         if not buy_action:
-            terminated = self.process_next_state(last_state_date)
-            return terminated
+            self.process_next_state(last_state_date)
         else:
             self.invoke_buy_order_agent()
-            return False
 
     def update_reward(self, from_buy_order_agent, bp=None, sp=None):
         if not self.environment.get_evaluation_mode():
@@ -53,34 +47,12 @@ class BuySignalAgent(Agent):
                     self.state.value) + ", bp: " + str(bp) + ", sp: " + str(sp))
                     # self.model.fit(self.state.value, reward, self.buy_action)
                 
-                
-            self.__iteration = self.__iteration + 1
-            print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
-            if self.__iteration < self.__num_train:
-                self.start_new_training()
-        else:
-            next_date = self.environment.get_next_day_of_state(date)
-            if next_date is not None:
-                # able to get next date's market data, continue to trade in evaluation mode
-                self.start_new_training()
+        self.environment.process_epoch_end()
 
     def invoke_buy_order_agent(self):
         # invoking buy order agent with the state of the stock at the same day
         self.__buy_order_agent.start_new_training(self.state.date)
 
     def start_new_training(self, terminated_by_other_agents=False, evaluation_mode=False):
-        if terminated_by_other_agents:
-            self.__error_toleration = self.__error_toleration - 1
-            print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: " + str(
-                self.__error_toleration))
-            if (self.__iteration < self.__num_train) and (self.__error_toleration > 0):
-                self.start_new_training()
-        else:
-            print("Buy signal - start new training")
-            terminated = self.process_next_state()
-            if terminated:
-                self.__error_toleration = self.__error_toleration - 1
-                print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: " + str(
-                    self.__error_toleration))
-                if (self.__iteration < self.__num_train) and (self.__error_toleration > 0):
-                    self.start_new_training()
+        print("Buy signal - start new training")
+        self.process_next_state()

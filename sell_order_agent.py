@@ -27,20 +27,20 @@ class SellOrderAgent(Agent):
         next_date = self.environment.get_next_day_of_state(date)
         if next_date is None:
             # not able to get next date's market data
-            return True
+            self.environment.terminate_epoch()
 
         market_data = self.environment.get_market_data_by_date(next_date)
 
         if market_data is None:
             # terminated
-            return True
+            self.environment.terminate_epoch()
 
         ma5 = market_data['ma5']
         high = market_data['High']
 
         if ma5 is None or high is None:
             # terminate
-            return True
+            self.environment.terminate_epoch()
 
         d = ma5 + action / 100 * ma5 - high
         print("processing sell order")
@@ -65,14 +65,10 @@ class SellOrderAgent(Agent):
             close = 3
             sp = close
             self.invoke_buy_signal_agent(sp)
-        return False
 
     def invoke_buy_signal_agent(self, sp):
         self.__buy_signal_agent.update_reward(False, self.bp, sp)
 
-    def restart_training(self, terminated_by_other_agents=True):
-        # state is not available, restart from the top
-        self.__buy_signal_agent.start_new_training(terminated_by_other_agents)
 
     def start_new_training(self, bp, date):
         print("Sell order - start new training " + str(date))
@@ -80,7 +76,5 @@ class SellOrderAgent(Agent):
         state = self.environment.get_sell_order_states_by_date(date)
         action = self.get_action(state)
 
-        terminated = self.process_action(action, date)
+        self.process_action(action, date)
 
-        if terminated:
-            self.restart_training()

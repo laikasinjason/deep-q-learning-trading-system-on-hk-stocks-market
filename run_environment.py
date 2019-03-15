@@ -8,15 +8,18 @@ if __name__ == '__main__':
     print("Starting environment")
 
     # variables initialization
-    env = Environment()
+    progress_recorder = ProgressRecorder()
+    env = Environment(progress_recorder, 1)
     buy_order_agent = BuyOrderAgent(env)
-    buy_signal_agent = BuySignalAgent(env, 1)
+    buy_signal_agent = BuySignalAgent(env)
     sell_order_agent = SellOrderAgent(env)
     sell_signal_agent = SellSignalAgent(env)
+    
+    env.set_buy_signal_agent(buy_signal_agent)
     buy_signal_agent.set_buy_order_agent(buy_order_agent)
     buy_order_agent.set_buy_signal_agent(buy_signal_agent)
     buy_order_agent.set_sell_signal_agent(sell_signal_agent)
     sell_signal_agent.set_sell_order_agent(sell_order_agent)
     sell_order_agent.set_buy_signal_agent(buy_signal_agent)
 
-    buy_signal_agent.start_new_training()
+    environment.start_new_epoch()

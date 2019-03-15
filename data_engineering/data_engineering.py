@@ -162,3 +162,4 @@ def enrich_market_data(data):
 
     data['ma5'] = sma(data['Close'], 5)
     data['rate_of_close'] = data['Close'].pct_change()
+    return data[no_data_to_remove:]
