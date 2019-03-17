@@ -29,7 +29,7 @@ class Agent:
 
     def get_action(self, state):
         if self.environment.get_evaluation_mode():
-            action = self.model.predict(state)
+            action = self.model.predict(state.value)
         else:
             iteration = 1000000  # use static epsilon for now
 
@@ -40,7 +40,8 @@ class Agent:
             if random.random() < epsilon:
                 action = self.model.get_random_action()
             else:
-                action = self.model.predict(state)
+                action = self.model.get_random_action()
+                # action = self.model.predict(state.value)
 
         print(self.__class__.__name__ + ": " + str(action))
 

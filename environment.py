@@ -21,7 +21,7 @@ class Environment:
         self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_3d_matrix(self.data)
         self.tech_indicator_matrix = data_engineering.create_technical_indicator_3d_matrix(self.data)
         self.data = data_engineering.enrich_market_data(self.data)
-        
+
         self.__evaluation_mode = False
         self.progress_recorder = progress_recorder
         self.__buy_signal_agent = None
@@ -147,49 +147,48 @@ class Environment:
         if s is not None:
             print("State: " + str(s.date) + " , " + str(s.value))
         return s
-        
+
     def get_evaluation_mode(self):
         return self.__evaluation_mode
-        
+
     def set_evaluation_mode(self, mode):
         self.__evaluation_mode = mode
-        
+
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
-        
+
     def set_buy_signal_agent(self, buy_signal_agent):
         self.__buy_signal_agent = buy_signal_agent
-        
+
     def record(self, **data):
         self.progress_recorder.process_recorded_data(**data)
-        
+
     def evaluate(self):
         self.progress_recorder.evaluate(self)
-        
+
     def start_new_epoch(self):
         # a whole cycle from buy (open) to sell (close) is considered as an epoch
         self.__buy_signal_agent.start_new_training()
-        
+
     def process_epoch_end(self):
         if not self.get_evaluation_mode():
             self.__iteration = self.__iteration + 1
             print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
-            
+
         else:
             next_date = self.get_next_day_of_state(date)
             if next_date is not None:
                 # able to get next date's market data, continue to trade in evaluation mode
                 self.start_new_epoch()
-                
+
     def terminate_epoch(self, terminated_by_other_agents=True):
         self.__error_toleration = self.__error_toleration - 1
         print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: " + str(
-                self.__error_toleration))
+            self.__error_toleration))
         if self.__error_toleration > 0:
             self.start_new_epoch()
-            
+
     def train_system(self):
         while self.__iteration < self.__num_train:
             self.__error_toleration = 5
             self.start_new_epoch()
-

@@ -49,18 +49,18 @@ class SellOrderAgent(Agent):
             reward = math.exp(100 * d / high)
             sp = ma5 + action / 100 * ma5
             # if not self.environment.get_evaluation_mode():
-                # self.model.fit(self.state.value, reward, action)
+            # self.model.fit(self.state.value, reward, action)
             # else:
-                # profit = (1 - self.environment.transaction_cost) * sp - bp
-                # record = {'sp' : sp, 'date' : next_date, 'profit', profit}
-                # self.environment.record(record)
+            # profit = (1 - self.environment.transaction_cost) * sp - bp
+            # record = {'sp' : sp, 'date' : next_date, 'profit', profit}
+            # self.environment.record(record)
             print("sell price: " + str(sp))
             self.invoke_buy_signal_agent(sp)
 
         else:
             reward = 0
             # if not self.environment.get_evaluation_mode():
-                # self.model.fit(self.state.value, reward, action)
+            # self.model.fit(self.state.value, reward, action)
 
             close = 3
             sp = close
@@ -69,7 +69,6 @@ class SellOrderAgent(Agent):
     def invoke_buy_signal_agent(self, sp):
         self.__buy_signal_agent.update_reward(False, self.bp, sp)
 
-
     def start_new_training(self, bp, date):
         print("Sell order - start new training " + str(date))
         self.bp = bp
@@ -77,4 +76,3 @@ class SellOrderAgent(Agent):
         action = self.get_action(state)
 
         self.process_action(action, date)
-

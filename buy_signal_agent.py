@@ -39,14 +39,14 @@ class BuySignalAgent(Agent):
                 reward = 0
                 print("reward: " + str(reward) + ", state: " + str(self.state.date) + " , " + str(
                     self.state.value) + ", bp: " + str(bp) + ", sp: " + str(sp))
-                    # self.model.fit(self.state.value, reward, self.buy_action)
+                # self.model.fit(self.state.value, reward, self.buy_action)
 
             else:
                 reward = ((1 - self.environment.transaction_cost) * sp - bp) / bp
                 print("reward: " + str(reward) + ", state: " + str(self.state.date) + " , " + str(
                     self.state.value) + ", bp: " + str(bp) + ", sp: " + str(sp))
-                    # self.model.fit(self.state.value, reward, self.buy_action)
-                
+                # self.model.fit(self.state.value, reward, self.buy_action)
+
         self.environment.process_epoch_end()
 
     def invoke_buy_order_agent(self):

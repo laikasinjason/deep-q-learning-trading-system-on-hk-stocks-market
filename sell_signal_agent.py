@@ -23,13 +23,13 @@ class SellSignalAgent(Agent):
         market_data = self.environment.get_market_data_by_date(last_state_date)
         # get next day for training
         next_day = self.environment.get_next_day_of_state(last_state_date)
-        
+
         if (market_data is None) or (next_day is None):
             # terminated
             self.environment.terminate_epoch()
 
         # for training
-        next_state = self.environment.get_sell_signal_states_by_date(next_day)
+        next_state = self.environment.get_sell_signal_states_by_date(self.bp, next_day)
 
         close = market_data['Close']
         roc = market_data['rate_of_close']
@@ -37,7 +37,7 @@ class SellSignalAgent(Agent):
         if close is None:
             # terminate
             self.environment.terminate_epoch()
-            
+
         market_data['profit'] = (self.bp - close) / close
         if not sell_action:
             # force sell signal agent to sell if profit is in certain condition
@@ -46,7 +46,7 @@ class SellSignalAgent(Agent):
             else:
                 reward = roc
                 # if not self.environment.get_evaluation_mode():
-                    # self.model.fit(self.state.value, reward, sell_action, next_state)
+                # self.model.fit(self.state.value, reward, sell_action, next_state)
                 self.process_next_state(last_state_date)
         else:
             self.invoke_sell_order_agent()

@@ -51,13 +51,13 @@ class Model:
 
     def predict(self, state):
         action_pos = self.model.predict(state).argmax()
-        print("Predicted action: " + action)
         action = self.one_hot_encoder.transform([[action_pos]])
+        print("Predicted action: " + str(action))
         return self.action_map_to_value(action)
 
     def get_random_action(self):
         action = self.one_hot_encoder.transform([[random.randint(0, len(self.one_hot_encoder.active_features_) - 1)]])
-        print("Random action: " + action)
+        print("Random action: " + str(action))
         return self.action_map_to_value(action)
 
     def action_map_to_value(self, search_action):
@@ -134,6 +134,7 @@ class SignalModel(Model):
 
 class SellSignalModel(SignalModel):
     gamma = 0.99
+
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
 
