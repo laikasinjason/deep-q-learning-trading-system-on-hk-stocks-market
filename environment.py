@@ -18,9 +18,12 @@ class Environment:
         self.data = data_engineering.load_data(csv_file)
         self.transaction_cost = transaction_cost
 
+        self.data = data_engineering.clean_data(self.data)
         self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_3d_matrix(self.data)
         self.tech_indicator_matrix = data_engineering.create_technical_indicator_3d_matrix(self.data)
-        self.data = data_engineering.enrich_market_data(self.data)
+        self.data = data_engineering.enrich_market_data(self.data) # add new cols, and truncate data so same row as above matrices
+        
+        self.assert_data_consistency()
 
         self.__evaluation_mode = False
         self.progress_recorder = progress_recorder
@@ -33,7 +36,7 @@ class Environment:
         test_len = 5
         self.data = pd.DataFrame(
             {'date': [i for i in range(test_len)], 'Low': [2 * i for i in range(test_len)],
-             'High': [7 * i for i in range(test_len)],
+             'High': [7 * i for i in range(test_len)], 'rate_of_close': [2 * i for i in range(test_len)],
              'ma5': [3 * i for i in range(test_len)], 'Close': [5 * i for i in range(test_len)]}).set_index('date')
         self.turning_point_max = pd.DataFrame(
             {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
@@ -168,6 +171,7 @@ class Environment:
 
     def start_new_epoch(self):
         # a whole cycle from buy (open) to sell (close) is considered as an epoch
+        self.__error_toleration = 5
         self.__buy_signal_agent.start_new_training()
 
     def process_epoch_end(self):
@@ -190,5 +194,12 @@ class Environment:
 
     def train_system(self):
         while self.__iteration < self.__num_train:
-            self.__error_toleration = 5
+            if self.__iteration%1000 == 0:
+                self.evaluate()
             self.start_new_epoch()
+            
+    def assert_data_consistency(self):
+        assert len(self.data) == len(self.turning_point_max.index.levels[0])
+        assert len(self.turning_point_max.index.levels[0]) == len(self.turning_point_min.index.levels[0])
+        assert len(self.turning_point_min.index.levels[0]) == len(self.tech_indicator_matrix.index.levels[0])
+        

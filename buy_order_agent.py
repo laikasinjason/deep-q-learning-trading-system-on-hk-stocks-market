@@ -58,6 +58,7 @@ class BuyOrderAgent(Agent):
             # else:
             # record = {'bp' : bp, 'date' : next_date}
             # self.environment.record(record)
+            
             # last state date for sell signal becomes T day, start training on T+1
             print("buy price: " + str(bp))
             self.invoke_sell_signal_agent(bp, next_date)

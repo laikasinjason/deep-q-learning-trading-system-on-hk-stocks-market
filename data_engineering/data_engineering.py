@@ -57,7 +57,7 @@ def get_next_day(date, data):
     if next_index >= len(data.index):
         return None
     else:
-        return data.index[data.index.get_loc(date) + 1]
+        return data.index[next_index]
 
 
 def get_profit(data, buy_price):
@@ -163,3 +163,9 @@ def enrich_market_data(data):
     data['ma5'] = sma(data['Close'], 5)
     data['rate_of_close'] = data['Close'].pct_change()
     return data[no_data_to_remove:]
+    
+def clean_data(data):
+    if data is None:
+        return
+    data = data.dropna()
+    return data
