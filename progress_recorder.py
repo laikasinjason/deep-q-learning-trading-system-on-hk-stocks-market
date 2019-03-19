@@ -4,13 +4,20 @@ class ProgressRecorder():
     def __init__(self):
         self.cumProfit = 0
 
+    def reset(self):
+        self.cumProfit = 0
+
     def evaluate(self, env):
 
         print("Evaluation started.")
-        self.cumProfit = 0
 
         env.set_evaluation_mode(True)
-        env.start_new_epoch()
+
+        result = env.start_new_epoch()
+        while result is not None:
+            # able to get next date's market data, continue to trade in evaluation mode
+            print("Progress: Next date: " + str(result))
+            result = env.start_new_epoch()
         env.set_evaluation_mode(False)
 
     def process_recorded_data(self, **data):
@@ -31,7 +38,8 @@ class ProgressRecorder():
         result = str(date) + "," + str(bp) + "," + str(sp) + "," + str(profit) + "," + str(self.cumProfit) + "\n"
         self.progress_recorder.write_to_file(result)
 
-    def write_to_file(self, line):
+    @staticmethod
+    def write_to_file(line):
         print("Writing line: " + line)
         f = open("progress.txt", "a")
         f.write(line)

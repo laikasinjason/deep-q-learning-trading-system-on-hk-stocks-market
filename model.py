@@ -50,15 +50,18 @@ class Model:
         return loss
 
     def predict(self, state):
+        state = np.expand_dims(state, axis=0)
         action_pos = self.model.predict(state).argmax()
         action = self.one_hot_encoder.transform([[action_pos]])
-        print("Predicted action: " + str(action))
-        return self.action_map_to_value(action)
+        action_value = self.action_map_to_value(action)
+        print("Predicted action: " + str(action)+ " " + str(action_value))
+        return action_value
 
     def get_random_action(self):
         action = self.one_hot_encoder.transform([[random.randint(0, len(self.one_hot_encoder.active_features_) - 1)]])
-        print("Random action: " + str(action))
-        return self.action_map_to_value(action)
+        action_value = self.action_map_to_value(action)
+        print("Random action: " + str(action)+ " " + str(action_value))
+        return action_value
 
     def action_map_to_value(self, search_action):
         for value, action in self.action_map.items():

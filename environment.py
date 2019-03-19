@@ -1,3 +1,4 @@
+import gc
 import numpy as np
 import pandas as pd
 
@@ -21,11 +22,11 @@ class Environment:
         self.data = data_engineering.clean_data(self.data)
         self.turning_point_max, self.turning_point_min = data_engineering.create_turning_point_3d_matrix(self.data)
         self.tech_indicator_matrix = data_engineering.create_technical_indicator_3d_matrix(self.data)
-        self.data = data_engineering.enrich_market_data(self.data) # add new cols, and truncate data so same row as above matrices
-        
-        self.assert_data_consistency()
+        # add new cols, and truncate data so same row as above matrices
+        self.data = data_engineering.enrich_market_data(self.data)
 
         self.__evaluation_mode = False
+        self.__evaluation_state = False
         self.progress_recorder = progress_recorder
         self.__buy_signal_agent = None
         self.__num_train = num_train
@@ -33,17 +34,19 @@ class Environment:
         self.__error_toleration = 5
 
         # simulate data for testing
-        test_len = 5
-        self.data = pd.DataFrame(
-            {'date': [i for i in range(test_len)], 'Low': [2 * i for i in range(test_len)],
-             'High': [7 * i for i in range(test_len)], 'rate_of_close': [2 * i for i in range(test_len)],
-             'ma5': [3 * i for i in range(test_len)], 'Close': [5 * i for i in range(test_len)]}).set_index('date')
-        self.turning_point_max = pd.DataFrame(
-            {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
-        self.turning_point_min = pd.DataFrame(
-            {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
-        self.tech_indicator_matrix = pd.DataFrame(
-            {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
+        # test_len = 5
+        # self.data = pd.DataFrame(
+        #     {'date': [i for i in range(test_len)], 'Low': [2 * i for i in range(test_len)],
+        #      'High': [7 * i for i in range(test_len)], 'rate_of_close': [2 * i for i in range(test_len)],
+        #      'ma5': [3 * i for i in range(test_len)], 'Close': [5 * i for i in range(test_len)]}).set_index('date')
+        # self.turning_point_max = pd.DataFrame(
+        #     {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
+        # self.turning_point_min = pd.DataFrame(
+        #     {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
+        # self.tech_indicator_matrix = pd.DataFrame(
+        #     {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
+
+        self.assert_data_consistency()
 
     def get_sell_signal_states_by_date(self, bp, date):
         # get next day state, if next day state is not available, throws error
@@ -116,7 +119,7 @@ class Environment:
 
     def get_market_data_by_date(self, date):
         market_data = self.data.loc[date]
-        print("Getting market data, date: " + str(date) + " , " + str(market_data))
+        print("Getting market data, date: " + str(date) + " , \n" + str(market_data))
 
         return market_data
 
@@ -154,9 +157,6 @@ class Environment:
     def get_evaluation_mode(self):
         return self.__evaluation_mode
 
-    def set_evaluation_mode(self, mode):
-        self.__evaluation_mode = mode
-
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
 
@@ -167,39 +167,54 @@ class Environment:
         self.progress_recorder.process_recorded_data(**data)
 
     def evaluate(self):
-        self.progress_recorder.evaluate(self)
+        print("Evaluation started.")
+
+        self.progress_recorder.reset()
+        self.__evaluation_mode = True
+        self.__evaluation_state = True
+
+        while self.__evaluation_state:
+            # able to get next date's market data, continue to trade in evaluation mode
+            self.start_new_epoch()
+            gc.collect()
+        self.__evaluation_mode = False
 
     def start_new_epoch(self):
         # a whole cycle from buy (open) to sell (close) is considered as an epoch
-        self.__error_toleration = 5
-        self.__buy_signal_agent.start_new_training()
+        if self.__evaluation_mode:
+            first_date = self.turning_point_max.index.levels[0][0]
+            self.__buy_signal_agent.start_new_training(first_date)
+        else:
+            self.__buy_signal_agent.start_new_training()
 
-    def process_epoch_end(self):
+    def process_epoch_end(self, end_date):
         if not self.get_evaluation_mode():
             self.__iteration = self.__iteration + 1
             print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
 
         else:
-            next_date = self.get_next_day_of_state(date)
-            if next_date is not None:
-                # able to get next date's market data, continue to trade in evaluation mode
-                self.start_new_epoch()
+            next_date = self.get_next_day_of_state(end_date)
+            return next_date
 
-    def terminate_epoch(self, terminated_by_other_agents=True):
+    def terminate_epoch(self):
+        print(self.__error_toleration)
         self.__error_toleration = self.__error_toleration - 1
-        print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: " + str(
-            self.__error_toleration))
+        print(self.__error_toleration)
+        print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: "
+              + str(self.__error_toleration))
         if self.__error_toleration > 0:
             self.start_new_epoch()
 
     def train_system(self):
         while self.__iteration < self.__num_train:
-            if self.__iteration%1000 == 0:
+            self.__error_toleration = 5
+            if self.__iteration % 1000 == 0 and self.__iteration != 0:
                 self.evaluate()
+                self.__error_toleration = 5
             self.start_new_epoch()
-            
+            gc.collect()
+
     def assert_data_consistency(self):
         assert len(self.data) == len(self.turning_point_max.index.levels[0])
         assert len(self.turning_point_max.index.levels[0]) == len(self.turning_point_min.index.levels[0])
         assert len(self.turning_point_min.index.levels[0]) == len(self.tech_indicator_matrix.index.levels[0])
-        

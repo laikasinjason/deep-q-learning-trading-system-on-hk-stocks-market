@@ -9,7 +9,7 @@ no_data_to_remove = 15
 def load_data(csv_file):
     if csv_file is None:
         return None
-    data = pd.read_csv("../../HKDailyStocksQuotes/" + csv_file, index_col='Date')
+    data = pd.read_csv("../HKDailyStocksQuotes/" + csv_file, index_col='Date')
     data.index = pd.to_datetime(data.index, format="%Y%m%d")
     return data
 
@@ -142,9 +142,9 @@ def create_technical_indicator_3d_matrix(data):
     result_ma10_diff[ma10_diff == 0] = 0  # remove 0 value
     result_ma20_diff[ma20_diff == 0] = 0  # remove 0 value
     result_hl_diff = result_hl_diff[no_data_to_remove:]
-    result_ma5_diff = result_hl_diff[no_data_to_remove:]
-    result_ma10_diff = result_hl_diff[no_data_to_remove:]
-    result_ma20_diff = result_hl_diff[no_data_to_remove:]
+    result_ma5_diff = result_ma5_diff[no_data_to_remove:]
+    result_ma10_diff = result_ma10_diff[no_data_to_remove:]
+    result_ma20_diff = result_ma20_diff[no_data_to_remove:]
 
     result_matrix = pd.concat([result_hl_diff, result_ma5_diff, result_ma10_diff, result_ma20_diff],
                               keys=['hl_diff', 'ma5_diff', 'ma10_diff', 'ma20_diff'])
@@ -163,7 +163,8 @@ def enrich_market_data(data):
     data['ma5'] = sma(data['Close'], 5)
     data['rate_of_close'] = data['Close'].pct_change()
     return data[no_data_to_remove:]
-    
+
+
 def clean_data(data):
     if data is None:
         return

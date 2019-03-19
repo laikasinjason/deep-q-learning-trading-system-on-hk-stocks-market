@@ -27,35 +27,35 @@ class SellOrderAgent(Agent):
         next_date = self.environment.get_next_day_of_state(date)
         if next_date is None:
             # not able to get next date's market data
-            self.environment.terminate_epoch()
+            return False
 
         market_data = self.environment.get_market_data_by_date(next_date)
 
         if market_data is None:
             # terminated
-            self.environment.terminate_epoch()
+            return False
 
         ma5 = market_data['ma5']
         high = market_data['High']
 
         if ma5 is None or high is None:
             # terminate
-            self.environment.terminate_epoch()
+            return False
 
-        d = ma5 + action / 100 * ma5 - high
-        print("processing sell order")
+        sp = ma5 + action / 100 * ma5
+        d = sp - high
+        print("processing sell order, sell price: " + str(sp))
 
         if d <= 0:
             reward = math.exp(100 * d / high)
-            sp = ma5 + action / 100 * ma5
+
             # if not self.environment.get_evaluation_mode():
             # self.model.fit(self.state.value, reward, action)
             # else:
             # profit = (1 - self.environment.transaction_cost) * sp - bp
             # record = {'sp' : sp, 'date' : next_date, 'profit', profit}
             # self.environment.record(record)
-            print("sell price: " + str(sp))
-            self.invoke_buy_signal_agent(sp)
+            self.invoke_buy_signal_agent(sp, next_date)
 
         else:
             reward = 0
@@ -64,15 +64,18 @@ class SellOrderAgent(Agent):
 
             close = 3
             sp = close
-            self.invoke_buy_signal_agent(sp)
+            self.invoke_buy_signal_agent(sp, next_date)
+        return True
 
-    def invoke_buy_signal_agent(self, sp):
-        self.__buy_signal_agent.update_reward(False, self.bp, sp)
+    def invoke_buy_signal_agent(self, sp, date):
+        self.__buy_signal_agent.update_reward(False, date, self.bp, sp)
 
     def start_new_training(self, bp, date):
         print("Sell order - start new training " + str(date))
         self.bp = bp
-        state = self.environment.get_sell_order_states_by_date(date)
-        action = self.get_action(state)
+        self.state  = self.environment.get_sell_order_states_by_date(date)
+        action = self.get_action(self.state)
 
-        self.process_action(action, date)
+        result = self.process_action(action, date)
+        if not result:
+            self.environment.terminate_epoch()
