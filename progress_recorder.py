@@ -7,19 +7,6 @@ class ProgressRecorder():
     def reset(self):
         self.cumProfit = 0
 
-    def evaluate(self, env):
-
-        print("Evaluation started.")
-
-        env.set_evaluation_mode(True)
-
-        result = env.start_new_epoch()
-        while result is not None:
-            # able to get next date's market data, continue to trade in evaluation mode
-            print("Progress: Next date: " + str(result))
-            result = env.start_new_epoch()
-        env.set_evaluation_mode(False)
-
     def process_recorded_data(self, **data):
         # date,bp,sp,profit,cumProfit
         date = data['date']

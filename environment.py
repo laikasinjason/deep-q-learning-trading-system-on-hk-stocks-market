@@ -24,14 +24,22 @@ class Environment:
         self.tech_indicator_matrix = data_engineering.create_technical_indicator_3d_matrix(self.data)
         # add new cols, and truncate data so same row as above matrices
         self.data = data_engineering.enrich_market_data(self.data)
-
-        self.__evaluation_mode = False
-        self.__evaluation_state = False
+        
+        # split data to train, test
+        self.train_index, self.test_index = data_engineering.split_data_set(self.data)
+        
         self.progress_recorder = progress_recorder
         self.__buy_signal_agent = None
+
+        # env variable
+        self.__evaluation_mode = False
+        self.next_date_for_evaluation = None
         self.__num_train = num_train
         self.__iteration = 0
         self.__error_toleration = 5
+        self.__terminated = None
+        self.__date = None
+        self.__bp = None
 
         # simulate data for testing
         # test_len = 5
@@ -111,47 +119,24 @@ class Environment:
             print("ERROR getting buy order state for date " + str(date))
             return None
 
-    def get_next_day_of_state(self, date):
-        next_day = data_engineering.get_next_day(date, self.data)
-        if next_day is None:
-            print("ERROR getting state for date " + str(date))
-        return next_day
-
     def get_market_data_by_date(self, date):
         market_data = self.data.loc[date]
         print("Getting market data, date: " + str(date) + " , \n" + str(market_data))
 
         return market_data
 
-    def produce_state(self, agent, last_date):
-        if (last_date is None) and isinstance(agent, BuySignalAgent):
-            # randomly pick a day from dataset
-            date = self.data.sample().index.values[0]
-            print("generated buySignalStates - first")
+    def produce_state(self, agent, date):
+        if isinstance(agent, BuyOrderAgent):
+            s = self.get_buy_order_states_by_date(date)
+        elif isinstance(agent, SellOrderAgent):
+            s = self.get_sell_order_states_by_date(date)
+        elif isinstance(agent, SellSignalAgent):
+            s = self.get_sell_signal_states_by_date(agent.bp, date)
+        elif isinstance(agent, BuySignalAgent):
             s = self.get_buy_signal_states_by_date(date)
 
-        else:
-            next_day = self.get_next_day_of_state(last_date)
-            if next_day is None:
-                return None
-
-            if isinstance(agent, BuyOrderAgent):
-                s = self.get_buy_order_states_by_date(next_day)
-            elif isinstance(agent, SellOrderAgent):
-                s = self.get_sell_order_states_by_date(next_day)
-            elif isinstance(agent, SellSignalAgent):
-                s = self.get_sell_signal_states_by_date(agent.bp, next_day)
-            elif isinstance(agent, BuySignalAgent):
-                if last_date is None:
-                    # randomly pick a day from dataset
-                    date = self.data.sample().index.values[0]
-                    print("generated buySignalStates - first")
-                    s = self.get_buy_signal_states_by_date(date)
-                else:
-                    s = self.get_buy_signal_states_by_date(next_day)
-
         if s is not None:
-            print("State: " + str(s.date) + " , " + str(s.value))
+            print("Getting state: " + str(s.date) + " , " + str(s.value))
         return s
 
     def get_evaluation_mode(self):
@@ -160,8 +145,11 @@ class Environment:
     def get_buy_signal_agent(self):
         return self.__buy_signal_agent
 
-    def set_buy_signal_agent(self, buy_signal_agent):
+    def set_agents(self, buy_signal_agent, sell_signal_agent, buy_order_agent, sell_order_agent):
         self.__buy_signal_agent = buy_signal_agent
+        self.__sell_signal_agent = sell_signal_agent
+        self.__buy_order_agent = buy_order_agent
+        self.__sell_order_agent = sell_order_agent
 
     def record(self, **data):
         self.progress_recorder.process_recorded_data(**data)
@@ -171,46 +159,83 @@ class Environment:
 
         self.progress_recorder.reset()
         self.__evaluation_mode = True
-        self.__evaluation_state = True
 
-        while self.__evaluation_state:
+        while self.__evaluation_mode:
             # able to get next date's market data, continue to trade in evaluation mode
             self.start_new_epoch()
             gc.collect()
-        self.__evaluation_mode = False
+        self.next_date_for_evaluation = None
 
+    def run(self):
+        self.__running_agent = self.__buy_signal_agent
+        while(not self.__terminated):
+            if self.__date is None:
+                # randomly pick a day from dataset
+                self.__date = pd.Series(self.train_index).sample()
+            else:
+                self.__date = data_engineering.get_next_day(self.__date, self.data)
+                
+            self.__running_agent.process_next_state(self.__date)
+        self.__bp = None
+
+    def set_buy_price(self, bp):
+        self.__bp = bp
+        
+    def get_buy_price(self):
+        return self.__bp
+        
+    def invoke_buy_order_agent(self):
+        # invoking buy order agent with the state of the stock at the same day
+        self.__running_agent = self.__buy_order_agent
+            
+    def invoke_sell_order_agent(self):
+        self.__running_agent = self.__sell_order_agent
+        # self.__sell_order_agent.start_new_training(self.bp, self.state.date)
+        
+    def invoke_sell_signal_agent(self):
+        self.__running_agent = self.__sell_signal_agent
+        
+    def invoke_sell_order_agent(self):
+        self.__running_agent = self.__sell_order_agent
+    
     def start_new_epoch(self):
         # a whole cycle from buy (open) to sell (close) is considered as an epoch
         if self.__evaluation_mode:
-            first_date = self.turning_point_max.index.levels[0][0]
-            self.__buy_signal_agent.start_new_training(first_date)
+            date = self.next_date_for_evaluation
+            if date is None:
+                date = self.test_index[0]
+            self.__buy_signal_agent.start_new_training(date)
+                
         else:
             self.__buy_signal_agent.start_new_training()
 
-    def process_epoch_end(self, end_date):
-        if not self.get_evaluation_mode():
-            self.__iteration = self.__iteration + 1
-            print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
+    def process_epoch_end(self, end_date, terminate=False):
+        if terminate:
+            print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: "
+                  + str(self.__error_toleration))
+            if self.__error_toleration > 0:
+                self.start_new_epoch()
+            else:
+            # reset param if it is terminated in evaluation mode
+            if self.__evaluation_mode:
+                self.__evaluation_mode = False
+                self.next_date_for_evaluation = None
+        else
+            if not self.__evaluation_mode:
+                self.__iteration = self.__iteration + 1
+                print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
 
-        else:
-            next_date = self.get_next_day_of_state(end_date)
-            return next_date
+            else:
+                self.next_date_for_evaluation = data_engineering.get_next_day(end_date, self.data)
+                if self.next_date_for_evaluation is None:
+                    self.__evaluation_mode = False
 
-    def terminate_epoch(self):
-        print(self.__error_toleration)
-        self.__error_toleration = self.__error_toleration - 1
-        print(self.__error_toleration)
-        print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: "
-              + str(self.__error_toleration))
-        if self.__error_toleration > 0:
-            self.start_new_epoch()
 
     def train_system(self):
         while self.__iteration < self.__num_train:
-            self.__error_toleration = 5
+            self.__error_toleration = 5 # may not need, coz the start date is randomly picked
             if self.__iteration % 1000 == 0 and self.__iteration != 0:
                 self.evaluate()
-                self.__error_toleration = 5
             self.start_new_epoch()
             gc.collect()
 

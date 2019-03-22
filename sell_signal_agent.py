@@ -6,19 +6,12 @@ class SellSignalAgent(Agent):
     def __init__(self, environment, sell_order_agent=None):
         super().__init__(environment)
 
-        self.bp = None
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
         self.model = SellSignalModel(2, 120)
-        self.__sell_order_agent = sell_order_agent
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
 
-    def get_sell_order_agent(self):
-        return self.__sell_order_agent
-
-    def set_sell_order_agent(self, sell_order_agent):
-        self.__sell_order_agent = sell_order_agent
-
+        
     def process_action(self, sell_action, last_state_date):
         market_data = self.environment.get_market_data_by_date(last_state_date)
         # get next day for training
@@ -29,7 +22,7 @@ class SellSignalAgent(Agent):
             return False
 
         # for training
-        next_state = self.environment.get_sell_signal_states_by_date(self.bp, next_day)
+        next_state = self.environment.get_sell_signal_states_by_date(self.environment.get_buy_price(), next_day)
 
         close = market_data['Close']
         roc = market_data['rate_of_close']
@@ -39,34 +32,27 @@ class SellSignalAgent(Agent):
             return False
 
         profit = (self.bp - close) / close
-        if not sell_action:
-            # force sell signal agent to sell if profit is in certain condition
-            if (profit > 0.3) or (profit < -0.2):
-                self.invoke_sell_order_agent()
-            else:
-                reward = roc
-                # if not self.environment.get_evaluation_mode():
-                # self.model.fit(self.state.value, reward, sell_action, next_state)
-                self.process_next_state(last_state_date)
+        
+        if sell_action or (profit > 0.3) or (profit < -0.2):
+            # force sell signal agent to sell if profit is in certain condition, or sell action
+            self.environment.invoke_sell_order_agent()
         else:
-            self.invoke_sell_order_agent()
+            reward = roc
+            # if not self.environment.get_evaluation_mode():
+            # self.model.fit(self.state.value, reward, sell_action, next_state)
+
         return True
 
-    def process_next_state(self, last_state_date):
-        self.state, sell_action = self.produce_state_and_get_action(last_state_date)
+    def process_next_state(self, date):
+        print("Sell signal - processing date: " + str(date))
+        
+        self.state, sell_action = self.produce_state_and_get_action(date)
         if self.state is None or sell_action is None:
             # stop training
-            self.environment.terminate_epoch()
+            self.environment.process_epoch_end(None, True)
         else:
             this_state_date = self.state.date
             result = self.process_action(sell_action, this_state_date)
             if not result:
-                self.environment.terminate_epoch()
-
-    def invoke_sell_order_agent(self):
-        self.__sell_order_agent.start_new_training(self.bp, self.state.date)
-
-    def start_new_training(self, bp, last_state_date):
-        print("Sell signal - start new training")
-        self.bp = bp
-        self.process_next_state(last_state_date)
+                self.environment.process_epoch_end(None, True)
+        

@@ -1,4 +1,5 @@
 import math
+import data_engineering.data_engineering as data_engineering
 
 from agent import Agent
 from model import OrderModel
@@ -8,7 +9,6 @@ class SellOrderAgent(Agent):
     def __init__(self, environment, buy_signal_agent=None):
         super().__init__(environment)
 
-        self.bp = None
         # technical indicator 4*8
         self.model = OrderModel(7, 32)
         self.__buy_signal_agent = buy_signal_agent
@@ -23,13 +23,7 @@ class SellOrderAgent(Agent):
 
     def process_action(self, action, date):
         # sell order agent consider state on T-1, and place order on T day
-
-        next_date = self.environment.get_next_day_of_state(date)
-        if next_date is None:
-            # not able to get next date's market data
-            return False
-
-        market_data = self.environment.get_market_data_by_date(next_date)
+        market_data = self.environment.get_market_data_by_date(date)
 
         if market_data is None:
             # terminated
@@ -52,10 +46,10 @@ class SellOrderAgent(Agent):
             # if not self.environment.get_evaluation_mode():
             # self.model.fit(self.state.value, reward, action)
             # else:
-            # profit = (1 - self.environment.transaction_cost) * sp - bp
-            # record = {'sp' : sp, 'date' : next_date, 'profit', profit}
+            # profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
+            # record = {'sp' : sp, 'date' : date, 'profit', profit}
             # self.environment.record(record)
-            self.invoke_buy_signal_agent(sp, next_date)
+            self.invoke_buy_signal_agent(sp, date)
 
         else:
             reward = 0
@@ -64,18 +58,19 @@ class SellOrderAgent(Agent):
 
             close = 3
             sp = close
-            self.invoke_buy_signal_agent(sp, next_date)
+            self.invoke_buy_signal_agent(sp, date)
         return True
 
     def invoke_buy_signal_agent(self, sp, date):
-        self.__buy_signal_agent.update_reward(False, date, self.bp, sp)
+        self.__buy_signal_agent.update_reward(False, date, self.environment.get_buy_price(), sp)
 
-    def start_new_training(self, bp, date):
-        print("Sell order - start new training " + str(date))
-        self.bp = bp
-        self.state  = self.environment.get_sell_order_states_by_date(date)
+    def process_next_state(self, date):
+        # the date get here is already the next day, but we need the same day of SSA as the state
+        prev_date = data_engineering.get_prev_day(date)
+        print("Sell order - processing date: " + str(date))
+        self.state = self.environment.get_sell_order_states_by_date(prev_date)
         action = self.get_action(self.state)
 
         result = self.process_action(action, date)
         if not result:
-            self.environment.terminate_epoch()
+            self.environment.process_epoch_end(None, True)

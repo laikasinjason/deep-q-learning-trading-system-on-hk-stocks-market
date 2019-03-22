@@ -5,6 +5,8 @@ bins = [-np.inf, -0.1, -0.05, -0.03, 0, 0.03, 0.05, 0.1, np.inf]
 names = ['<-0.1', '-0.1--0.05', '-0.05--0.03', ' -0.03-0', '0-0.03', '0.03-0.05', '0.05-0.1', '>0.1']
 no_data_to_remove = 15
 
+train_ratio = 0.7
+
 
 def load_data(csv_file):
     if csv_file is None:
@@ -55,9 +57,19 @@ def get_next_day(date, data):
     # next row in data
     next_index = data.index.get_loc(date) + 1
     if next_index >= len(data.index):
+        print("ERROR getting state for date " + str(next_index))
         return None
     else:
         return data.index[next_index]
+        
+def get_prev_day(date, data):
+    # previous row in data
+    prev_index = data.index.get_loc(date) - 1
+    if prev_index < 0:
+        print("ERROR getting state for date " + str(prev_index))
+        return None
+    else:
+        return data.index[prev_index]
 
 
 def get_profit(data, buy_price):
@@ -170,3 +182,10 @@ def clean_data(data):
         return
     data = data.dropna()
     return data
+    
+def split_data_set_index(data):
+    train_split = int(len(data) * train_ratio)
+
+    train = data[:train_split].index
+    test = data[train_split:].index
+    return train, test
