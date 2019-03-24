@@ -1,5 +1,4 @@
 import math
-import data_engineering.data_engineering as data_engineering
 
 from agent import Agent
 from model import OrderModel
@@ -63,7 +62,7 @@ class BuyOrderAgent(Agent):
 
     def process_next_state(self, date):
         # the date get here is already the next day, but we need the same day of BSA as the state
-        prev_date = data_engineering.get_prev_day(date)
+        prev_date = self.environment.get_prev_day(date)
         print("Buy order - processing date: " + str(date))
         self.state = self.environment.get_buy_order_states_by_date(prev_date)
         action = self.get_action(self.state)

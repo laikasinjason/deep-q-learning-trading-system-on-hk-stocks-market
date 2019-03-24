@@ -11,11 +11,10 @@ class SellSignalAgent(Agent):
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
 
-        
     def process_action(self, sell_action, last_state_date):
         market_data = self.environment.get_market_data_by_date(last_state_date)
         # get next day for training
-        next_day = self.environment.get_next_day_of_state(last_state_date)
+        next_day = self.environment.get_next_day(last_state_date)
 
         if (market_data is None) or (next_day is None):
             # terminated
@@ -32,7 +31,7 @@ class SellSignalAgent(Agent):
             return False
 
         profit = (self.bp - close) / close
-        
+
         if sell_action or (profit > 0.3) or (profit < -0.2):
             # force sell signal agent to sell if profit is in certain condition, or sell action
             self.environment.invoke_sell_order_agent()
@@ -45,7 +44,7 @@ class SellSignalAgent(Agent):
 
     def process_next_state(self, date):
         print("Sell signal - processing date: " + str(date))
-        
+
         self.state, sell_action = self.produce_state_and_get_action(date)
         if self.state is None or sell_action is None:
             # stop training
@@ -55,4 +54,3 @@ class SellSignalAgent(Agent):
             result = self.process_action(sell_action, this_state_date)
             if not result:
                 self.environment.process_epoch_end(None, True)
-        

@@ -61,7 +61,8 @@ def get_next_day(date, data):
         return None
     else:
         return data.index[next_index]
-        
+
+
 def get_prev_day(date, data):
     # previous row in data
     prev_index = data.index.get_loc(date) - 1
@@ -182,7 +183,8 @@ def clean_data(data):
         return
     data = data.dropna()
     return data
-    
+
+
 def split_data_set_index(data):
     train_split = int(len(data) * train_ratio)
 

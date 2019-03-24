@@ -17,10 +17,7 @@ if __name__ == '__main__':
     sell_signal_agent = SellSignalAgent(env)
 
     env.set_agents(buy_signal_agent, sell_signal_agent, buy_order_agent, sell_order_agent)
-    buy_signal_agent.set_buy_order_agent(buy_order_agent)
     buy_order_agent.set_buy_signal_agent(buy_signal_agent)
-    buy_order_agent.set_sell_signal_agent(sell_signal_agent)
-    sell_signal_agent.set_sell_order_agent(sell_order_agent)
     sell_order_agent.set_buy_signal_agent(buy_signal_agent)
 
-    env.start_new_epoch()
+    env.train_system()

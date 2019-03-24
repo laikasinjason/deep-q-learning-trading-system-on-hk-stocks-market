@@ -1,6 +1,6 @@
 import math
-import data_engineering.data_engineering as data_engineering
 
+import data_engineering.data_engineering as data_engineering
 from agent import Agent
 from model import OrderModel
 

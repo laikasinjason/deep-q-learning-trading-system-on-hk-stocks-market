@@ -10,7 +10,6 @@ class BuySignalAgent(Agent):
         self.state = None  # save the state to be trained
         self.buy_action = None  # save the action needed to pass to fit method
 
-
     def process_next_state(self, date):
         print("Buy signal - processing date: " + str(date))
         self.state, self.buy_action = self.produce_state_and_get_action(date)
@@ -34,4 +33,3 @@ class BuySignalAgent(Agent):
                 # self.model.fit(self.state.value, reward, self.buy_action)
 
         self.environment.process_epoch_end(date)
-        
