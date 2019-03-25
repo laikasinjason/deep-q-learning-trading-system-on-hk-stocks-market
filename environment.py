@@ -36,10 +36,9 @@ class Environment:
 
         # env variable
         self.__evaluation_mode = False
-        self.next_date_for_evaluation = None
+        self.__next_date_for_evaluation = None
         self.__num_train = num_train
         self.__iteration = 0
-        self.__error_toleration = 5
         self.__terminated = None
         self.__date = None
         self.__bp = None
@@ -166,10 +165,11 @@ class Environment:
             # able to get next date's market data, continue to trade in evaluation mode
             self.start_new_epoch()
             gc.collect()
-        self.next_date_for_evaluation = None
 
     def start_new_epoch(self):
+        # from buy (open position) to sell(close position) is considered an epoch
         self.__running_agent = self.__buy_signal_agent
+        self.__bp = None
         self.__terminated = False
 
         if self.__evaluation_mode:
@@ -182,7 +182,6 @@ class Environment:
 
             self.__date = self.get_next_day(self.__date)
 
-        self.__bp = None
 
     def set_buy_price(self, bp):
         self.__bp = bp
@@ -199,9 +198,10 @@ class Environment:
 
     def invoke_sell_signal_agent(self):
         self.__running_agent = self.__sell_signal_agent
-
-    def invoke_sell_order_agent(self):
-        self.__running_agent = self.__sell_order_agent
+        
+    def invoke_buy_signal_agent(self, from_buy_order_agent, date, bp=None, sp=None):
+        # when invoking BSA, it is to update the BSA's rewards
+        self.__buy_signal_agent.update_reward(from_buy_order_agent, date, bp, sp)
 
     def process_epoch_end(self, end_date, terminate=False):
         if terminate:
@@ -209,20 +209,19 @@ class Environment:
             if self.__evaluation_mode:
                 print("Terminated in evaluation mode")
                 self.__evaluation_mode = False
-                self.next_date_for_evaluation = None
+                self.__next_date_for_evaluation = None
             else:
-                print("Terminated, iteration : " + str(self.__iteration) + ", tolerate count down: "
-                      + str(self.__error_toleration))
+                print("Terminated, iteration : " + str(self.__iteration))
 
         else:
-            if not self.__evaluation_mode:
+            if self.__evaluation_mode:
+                self.__next_date_for_evaluation = self.get_next_day(end_date)
+                if self.__next_date_for_evaluation is None:
+                    self.__evaluation_mode = False
+            else: 
                 self.__iteration = self.__iteration + 1
                 print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
 
-            else:
-                self.next_date_for_evaluation = self.get_next_day(end_date)
-                if self.next_date_for_evaluation is None:
-                    self.__evaluation_mode = False
         self.__terminated = True
 
     def get_next_day(self, date):
@@ -233,7 +232,6 @@ class Environment:
 
     def train_system(self):
         while self.__iteration < self.__num_train:
-            self.__error_toleration = 5  # may not need, coz the start date is randomly picked
             if self.__iteration % 1000 == 0 and self.__iteration != 0:
                 self.evaluate()
             self.start_new_epoch()

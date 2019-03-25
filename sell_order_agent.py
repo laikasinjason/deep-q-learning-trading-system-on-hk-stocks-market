@@ -6,20 +6,14 @@ from model import OrderModel
 
 
 class SellOrderAgent(Agent):
-    def __init__(self, environment, buy_signal_agent=None):
+    def __init__(self, environment):
         super().__init__(environment)
 
         # technical indicator 4*8
         self.model = OrderModel(7, 32)
-        self.__buy_signal_agent = buy_signal_agent
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
 
-    def get_buy_signal_agent(self):
-        return self.__buy_signal_agent
-
-    def set_buy_signal_agent(self, buy_signal_agent):
-        self.__buy_signal_agent = buy_signal_agent
 
     def process_action(self, action, date):
         # sell order agent consider state on T-1, and place order on T day
@@ -49,7 +43,7 @@ class SellOrderAgent(Agent):
             # profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
             # record = {'sp' : sp, 'date' : date, 'profit', profit}
             # self.environment.record(record)
-            self.invoke_buy_signal_agent(sp, date)
+            self.environment.update_reward(False, date, self.environment.get_buy_price(), sp)
 
         else:
             reward = 0
@@ -59,10 +53,8 @@ class SellOrderAgent(Agent):
             close = 3
             sp = close
             self.invoke_buy_signal_agent(sp, date)
+            self.environment.update_reward(False, date, self.environment.get_buy_price(), sp)
         return True
-
-    def invoke_buy_signal_agent(self, sp, date):
-        self.__buy_signal_agent.update_reward(False, date, self.environment.get_buy_price(), sp)
 
     def process_next_state(self, date):
         # the date get here is already the next day, but we need the same day of SSA as the state

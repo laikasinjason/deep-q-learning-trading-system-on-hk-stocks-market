@@ -3,7 +3,7 @@ from model import SellSignalModel
 
 
 class SellSignalAgent(Agent):
-    def __init__(self, environment, sell_order_agent=None):
+    def __init__(self, environment):
         super().__init__(environment)
 
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
