@@ -182,7 +182,6 @@ class Environment:
 
             self.__date = self.get_next_day(self.__date)
 
-
     def set_buy_price(self, bp):
         self.__bp = bp
 
@@ -196,9 +195,10 @@ class Environment:
     def invoke_sell_order_agent(self):
         self.__running_agent = self.__sell_order_agent
 
-    def invoke_sell_signal_agent(self):
+    def invoke_sell_signal_agent(self, bp):
         self.__running_agent = self.__sell_signal_agent
-        
+        self.__sell_signal_agent.set_buy_price(bp)
+
     def invoke_buy_signal_agent(self, from_buy_order_agent, date, bp=None, sp=None):
         # when invoking BSA, it is to update the BSA's rewards
         self.__buy_signal_agent.update_reward(from_buy_order_agent, date, bp, sp)
@@ -218,7 +218,7 @@ class Environment:
                 self.__next_date_for_evaluation = self.get_next_day(end_date)
                 if self.__next_date_for_evaluation is None:
                     self.__evaluation_mode = False
-            else: 
+            else:
                 self.__iteration = self.__iteration + 1
                 print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
 

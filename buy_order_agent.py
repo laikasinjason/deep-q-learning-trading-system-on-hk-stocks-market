@@ -12,7 +12,6 @@ class BuyOrderAgent(Agent):
         self.model = OrderModel(7, 32)
         self.state = None  # save the state to be trained
 
-
     def process_action(self, action, date):
         # buy order agent consider state on T-1, and place order on T day
         market_data = self.environment.get_market_data_by_date(date)
@@ -42,8 +41,8 @@ class BuyOrderAgent(Agent):
             # self.environment.record(record)
 
             # last state date for sell signal becomes T day, start training on T+1
-            self.environment.invoke_sell_signal_agent()
-            self.environment.set_bp(bp)
+            self.environment.invoke_sell_signal_agent(bp)
+            self.environment.set_buy_price(bp)
         else:
             reward = 0
             # if not self.environment.get_evaluation_mode():

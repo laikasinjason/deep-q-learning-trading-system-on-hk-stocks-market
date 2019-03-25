@@ -14,7 +14,6 @@ class SellOrderAgent(Agent):
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
 
-
     def process_action(self, action, date):
         # sell order agent consider state on T-1, and place order on T day
         market_data = self.environment.get_market_data_by_date(date)
