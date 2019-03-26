@@ -10,7 +10,6 @@ class SellSignalAgent(Agent):
         self.model = SellSignalModel(2, 120)
         self.state = None  # save the state to be trained
         self.action = None  # save the action needed to pass to fit method
-        self.bp = None
 
     def process_action(self, sell_action, last_state_date):
         market_data = self.environment.get_market_data_by_date(last_state_date)
@@ -31,7 +30,7 @@ class SellSignalAgent(Agent):
             # terminate
             return False
 
-        profit = (self.bp - close) / close
+        profit = (self.environment.get_buy_price() - close) / close
 
         if sell_action or (profit > 0.3) or (profit < -0.2):
             # force sell signal agent to sell if profit is in certain condition, or sell action
@@ -43,8 +42,6 @@ class SellSignalAgent(Agent):
 
         return True
 
-    def set_buy_price(self, bp):
-        self.bp = bp
 
     def process_next_state(self, date):
         print("Sell signal - processing date: " + str(date))

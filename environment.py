@@ -36,13 +36,12 @@ class Environment:
 
         # env variable
         self.__evaluation_mode = False
-        self.__next_date_for_evaluation = None
         self.__num_train = num_train
         self.__iteration = 0
         self.__terminated = None
-        self.__date = None
+        self.__date = None # current date on training
         self.__bp = None
-        self.__running_agent = None
+        self.__running_agent = None # the active agent in the trading process
 
         # simulate data for testing
         # test_len = 5
@@ -134,7 +133,7 @@ class Environment:
         elif isinstance(agent, SellOrderAgent):
             s = self.get_sell_order_states_by_date(date)
         elif isinstance(agent, SellSignalAgent):
-            s = self.get_sell_signal_states_by_date(agent.bp, date)
+            s = self.get_sell_signal_states_by_date(self.__bp, date)
         elif isinstance(agent, BuySignalAgent):
             s = self.get_buy_signal_states_by_date(date)
 
@@ -172,10 +171,13 @@ class Environment:
         self.__bp = None
         self.__terminated = False
 
+        
         if self.__evaluation_mode:
-            self.__date = self.test_index[0]
+            if self.__date is None:
+                self.__date = self.test_index[0]
         else:
             self.__date = pd.Series(self.train_index).sample().values[0]
+            
 
         while not self.__terminated:
             self.__running_agent.process_next_state(self.__date)
@@ -187,6 +189,9 @@ class Environment:
 
     def get_buy_price(self):
         return self.__bp
+        
+    def get_iteration(self):
+        return self.__iteration
 
     def invoke_buy_order_agent(self):
         # invoking buy order agent with the state of the stock at the same day
@@ -195,9 +200,8 @@ class Environment:
     def invoke_sell_order_agent(self):
         self.__running_agent = self.__sell_order_agent
 
-    def invoke_sell_signal_agent(self, bp):
+    def invoke_sell_signal_agent(self):
         self.__running_agent = self.__sell_signal_agent
-        self.__sell_signal_agent.set_buy_price(bp)
 
     def invoke_buy_signal_agent(self, from_buy_order_agent, date, bp=None, sp=None):
         # when invoking BSA, it is to update the BSA's rewards
@@ -205,21 +209,22 @@ class Environment:
 
     def process_epoch_end(self, end_date, terminate=False):
         if terminate:
-            # reset param if it is terminated in evaluation mode
+            # reset evaluation mode if it is terminated in evaluation mode
             if self.__evaluation_mode:
                 print("Terminated in evaluation mode")
                 self.__evaluation_mode = False
-                self.__next_date_for_evaluation = None
             else:
                 print("Terminated, iteration : " + str(self.__iteration))
+                self.__date = None
 
         else:
             if self.__evaluation_mode:
-                self.__next_date_for_evaluation = self.get_next_day(end_date)
-                if self.__next_date_for_evaluation is None:
+                next_date_for_evaluation = self.get_next_day(end_date)
+                if next_date_for_evaluation is None:
                     self.__evaluation_mode = False
             else:
                 self.__iteration = self.__iteration + 1
+                self.__date = None
                 print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
 
         self.__terminated = True

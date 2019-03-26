@@ -2,13 +2,17 @@ class ProgressRecorder():
     # Class for saving the performance indicators
 
     def __init__(self):
-        self.cumProfit = 0
+        self.cum_profit = 0
+        self.max_cum_profit = 0
+        self.drawdown = 0
 
     def reset(self):
-        self.cumProfit = 0
+        self.cum_profit = 0
+        self.max_cum_profit = 0
+        self.drawdown = 0
 
     def process_recorded_data(self, **data):
-        # date,bp,sp,profit,cumProfit
+        # date,bp,sp,profit,cumProfit,drawdown
         date = data['date']
         bp = 0
         sp = 0
@@ -20,9 +24,14 @@ class ProgressRecorder():
         if 'profit' in data.keys():
             profit = data['profit']
 
-        self.cumProfit = self.cumProfit + profit
+        self.cum_profit = self.cum_profit + profit
+        
+        self.max_cum_profit = self.cum_profit  if self.cum_profit > self.max_cum_profit else self.max_cum_profit
+        self.drawdown = self.max_cum_profit - self.cum_profit if self.max_cum_profit > self.cum_profit else 0
+        
 
-        result = str(date) + "," + str(bp) + "," + str(sp) + "," + str(profit) + "," + str(self.cumProfit) + "\n"
+        result = str(date) + "," + str(bp) + "," + str(sp) + "," + str(profit) + "," + str(self.cum_profit)
+                    + "," + str(self.drawdown) + "\n"
         self.progress_recorder.write_to_file(result)
 
     @staticmethod
