@@ -39,8 +39,7 @@ class Agent:
             if random.random() < epsilon:
                 action = self.model.get_random_action()
             else:
-                action = self.model.get_random_action()
-                # action = self.model.predict(state.value)
+                action = self.model.predict(state.value)
 
         print(self.__class__.__name__ + ": " + str(action))
 

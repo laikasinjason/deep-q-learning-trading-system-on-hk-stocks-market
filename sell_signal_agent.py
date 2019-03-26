@@ -37,11 +37,10 @@ class SellSignalAgent(Agent):
             self.environment.invoke_sell_order_agent()
         else:
             reward = roc
-            # if not self.environment.get_evaluation_mode():
-            # self.model.fit(self.state.value, reward, sell_action, next_state)
+            if not self.environment.get_evaluation_mode():
+                self.model.fit(self.state.value, reward, sell_action, next_state.value)
 
         return True
-
 
     def process_next_state(self, date):
         print("Sell signal - processing date: " + str(date))

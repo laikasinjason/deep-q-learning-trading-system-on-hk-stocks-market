@@ -36,31 +36,31 @@ class Model:
     def copy_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
-    def fit(self, states, reward, action):
+    def fit(self, state, reward, action_value):
         # Run one fast-forward to get the Q-values for all actions
-        target = self.model.predict(states)
-        new_Q_values = reward
+        state = np.expand_dims(state, axis=0)
+        target = self.model.predict(state)
 
         # Set the new Q values to target
-        one_hot_action = self.one_hot_encoder.transform(action)
-        target[one_hot_action.astype(bool)] = new_Q_values
+        one_hot_action = self.value_map_to_action(action_value)
 
-        loss = self.model.fit(states, target, epochs=1, batch_size=1, verbose=0)
+        target[one_hot_action.astype(bool)] = reward
+
+        loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
 
         return loss
 
     def predict(self, state):
         state = np.expand_dims(state, axis=0)
         action_pos = self.model.predict(state).argmax()
-        action = self.one_hot_encoder.transform([[action_pos]])
-        action_value = self.action_map_to_value(action)
-        print("Predicted action: " + str(action)+ " " + str(action_value))
+
+        action_value = self.action_map_to_value(action_pos)
+        print("Predicted action: " + str(action_value))
         return action_value
 
     def get_random_action(self):
-        action = self.one_hot_encoder.transform([[random.randint(0, len(self.one_hot_encoder.active_features_) - 1)]])
-        action_value = self.action_map_to_value(action)
-        print("Random action: " + str(action)+ " " + str(action_value))
+        action_value = random.choice(list(self.action_map.keys()))
+        print("Random action: " + str(action_value))
         return action_value
 
     def action_map_to_value(self, search_action):
@@ -69,18 +69,20 @@ class Model:
                 return value
 
     def value_map_to_action(self, value):
-        return self.action_map.get(value)
+        value = self.action_map.get(value)
+        action = self.one_hot_encoder.transform([[value]])
+        return action
 
 
 class OrderModel(Model):
     # action map the value (percentage of ma(5)) to the output form from the model
-    action_map = {-3: [1., 0., 0., 0., 0., 0., 0.],
-                  -2: [0., 1., 0., 0., 0., 0., 0.],
-                  -1: [0., 0., 1., 0., 0., 0., 0.],
-                  0: [0., 0., 0., 1., 0., 0., 0.],
-                  1: [0., 0., 0., 0., 1., 0., 0.],
-                  2: [0., 0., 0., 0., 0., 1., 0.],
-                  3: [0., 0., 0., 0., 0., 0., 1.]}
+    action_map = {-3: 0,
+                  -2: 1,
+                  -1: 2,
+                  0: 3,
+                  1: 4,
+                  2: 5,
+                  3: 6}
 
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
@@ -109,8 +111,8 @@ class OrderModel(Model):
 
 
 class SignalModel(Model):
-    action_map = {True: [1., 0.],
-                  False: [0., 1.]}
+    action_map = {True: 0,
+                  False: 1}
 
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
@@ -142,16 +144,20 @@ class SellSignalModel(SignalModel):
         super().__init__(n_actions, n_states)
 
     # override the fit method, since sell signal agent has diff training algo
-    def fit(self, state, reward, action, next_state):
+    def fit(self, state, reward, action_value, next_state):
         # Run one fast-forward to get the Q-values for all actions
+        state = np.expand_dims(state, axis=0)
         target = self.model.predict(state)
+
+        next_state = np.expand_dims(next_state, axis=0)
         next_Q_values = self.model.predict(next_state)
         new_Q_values = reward + self.gamma * np.max(next_Q_values, axis=1)
 
         # Set the new Q values to target
-        one_hot_action = self.one_hot_encoder.transform(action)
+        one_hot_action = self.value_map_to_action(action_value)
+
         target[one_hot_action.astype(bool)] = new_Q_values
 
-        loss = model.fit(state, target, epochs=1, batch_size=1, verbose=0)
+        loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
 
         return loss

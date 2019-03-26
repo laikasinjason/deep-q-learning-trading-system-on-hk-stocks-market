@@ -15,7 +15,7 @@ class BuySignalAgent(Agent):
         self.state, self.buy_action = self.produce_state_and_get_action(date)
 
         if self.state is None or self.buy_action is None:
-            self.environment.terminate_epoch()
+            self.environment.process_epoch_end(None, True)
         elif self.buy_action:
             # invoking buy order agent with the state of the stock at the same day
             self.environment.invoke_buy_order_agent()
@@ -24,12 +24,12 @@ class BuySignalAgent(Agent):
         if not self.environment.get_evaluation_mode():
             if from_buy_order_agent:
                 reward = 0
-                print("reward: " + str(reward) + ", state: " + str(date) + ", bp: " + str(bp) + ", sp: " + str(sp))
-                # self.model.fit(self.state.value, reward, self.buy_action)
+                print("reward: " + str(reward) + ", state: " + str(self.state.date) + ", bp: " + str(bp) + ", sp: " + str(sp))
+                self.model.fit(self.state.value, reward, self.buy_action)
 
             else:
                 reward = ((1 - self.environment.transaction_cost) * sp - bp) / bp
-                print("reward: " + str(reward) + ", state: " + str(date) + ", bp: " + str(bp) + ", sp: " + str(sp))
-                # self.model.fit(self.state.value, reward, self.buy_action)
+                print("reward: " + str(reward) + ", state: " + str(self.state.date) + ", bp: " + str(bp) + ", sp: " + str(sp))
+                self.model.fit(self.state.value, reward, self.buy_action)
 
         self.environment.process_epoch_end(date)

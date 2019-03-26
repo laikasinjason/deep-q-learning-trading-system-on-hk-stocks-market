@@ -39,9 +39,9 @@ class Environment:
         self.__num_train = num_train
         self.__iteration = 0
         self.__terminated = None
-        self.__date = None # current date on training
+        self.__date = None  # current date on training
         self.__bp = None
-        self.__running_agent = None # the active agent in the trading process
+        self.__running_agent = None  # the active agent in the trading process
 
         # simulate data for testing
         # test_len = 5
@@ -123,7 +123,7 @@ class Environment:
 
     def get_market_data_by_date(self, date):
         market_data = self.data.loc[date]
-        print("Getting market data, date: " + str(date) + " , \n" + str(market_data))
+        # print("Getting market data, date: " + str(date) + " , \n" + str(market_data))
 
         return market_data
 
@@ -171,25 +171,26 @@ class Environment:
         self.__bp = None
         self.__terminated = False
 
-        
         if self.__evaluation_mode:
             if self.__date is None:
                 self.__date = self.test_index[0]
         else:
             self.__date = pd.Series(self.train_index).sample().values[0]
-            
 
         while not self.__terminated:
             self.__running_agent.process_next_state(self.__date)
 
-            self.__date = self.get_next_day(self.__date)
+            if not self.__terminated:
+                self.__date = self.get_next_day(self.__date)
+                if self.__date is None:
+                    self.process_epoch_end(None, True)
 
     def set_buy_price(self, bp):
         self.__bp = bp
 
     def get_buy_price(self):
         return self.__bp
-        
+
     def get_iteration(self):
         return self.__iteration
 
@@ -225,7 +226,7 @@ class Environment:
             else:
                 self.__iteration = self.__iteration + 1
                 self.__date = None
-                print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
+                print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train) + "\n")
 
         self.__terminated = True
 
@@ -233,7 +234,7 @@ class Environment:
         return data_engineering.get_next_day(date, self.data)
 
     def get_prev_day(self, date):
-        return data_engineering.get_next_day(date, self.data)
+        return data_engineering.get_prev_day(date, self.data)
 
     def train_system(self):
         while self.__iteration < self.__num_train:

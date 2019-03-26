@@ -23,6 +23,7 @@ class SellOrderAgent(Agent):
 
         ma5 = market_data['ma5']
         high = market_data['High']
+        close = market_data['Close']
 
         if ma5 is None or high is None:
             # terminate
@@ -30,28 +31,22 @@ class SellOrderAgent(Agent):
 
         sp = ma5 + action / 100 * ma5
         d = sp - high
-        print("processing sell order, sell price: " + str(sp))
 
         if d <= 0:
             reward = math.exp(100 * d / high)
 
-            # if not self.environment.get_evaluation_mode():
-            # self.model.fit(self.state.value, reward, action)
-            # else:
-            # profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
-            # record = {'sp' : sp, 'date' : date, 'profit', profit}
-            # self.environment.record(record)
-            self.environment.update_reward(False, date, self.environment.get_buy_price(), sp)
-
         else:
             reward = 0
-            # if not self.environment.get_evaluation_mode():
-            # self.model.fit(self.state.value, reward, action)
-
-            close = 3
             sp = close
-            self.invoke_buy_signal_agent(sp, date)
-            self.environment.update_reward(False, date, self.environment.get_buy_price(), sp)
+
+        if not self.environment.get_evaluation_mode():
+            self.model.fit(self.state.value, reward, action)
+        else:
+            profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
+            record = {'sp': sp, 'date': date, 'profit': profit}
+            self.environment.record(**record)
+        print("processing sell order, sell price: " + str(sp))
+        self.environment.invoke_buy_signal_agent(sp, date, self.environment.get_buy_price(), sp)
         return True
 
     def process_next_state(self, date):

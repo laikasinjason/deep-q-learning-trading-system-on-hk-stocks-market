@@ -25,14 +25,14 @@ class ProgressRecorder():
             profit = data['profit']
 
         self.cum_profit = self.cum_profit + profit
-        
-        self.max_cum_profit = self.cum_profit  if self.cum_profit > self.max_cum_profit else self.max_cum_profit
-        self.drawdown = self.max_cum_profit - self.cum_profit if self.max_cum_profit > self.cum_profit else 0
-        
 
-        result = str(date) + "," + str(bp) + "," + str(sp) + "," + str(profit) + "," + str(self.cum_profit)
-                    + "," + str(self.drawdown) + "\n"
-        self.progress_recorder.write_to_file(result)
+        self.max_cum_profit = self.cum_profit if self.cum_profit > self.max_cum_profit else self.max_cum_profit
+        self.drawdown = self.max_cum_profit - self.cum_profit if self.max_cum_profit > self.cum_profit else 0
+
+        result = str(date) + "," + str(bp) + "," + str(sp) + "," + str(profit) + "," + str(self.cum_profit) + "," + \
+                 str(self.drawdown) + "\n"
+
+        self.write_to_file(result)
 
     @staticmethod
     def write_to_file(line):
