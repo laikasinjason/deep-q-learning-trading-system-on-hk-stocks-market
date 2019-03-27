@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 import data_engineering.data_engineering as data_engineering
+import model_loading
 from buy_order_agent import BuyOrderAgent
 from buy_signal_agent import BuySignalAgent
 from sell_order_agent import SellOrderAgent
@@ -238,8 +239,14 @@ class Environment:
 
     def train_system(self):
         while self.__iteration < self.__num_train:
-            if self.__iteration % 1000 == 0 and self.__iteration != 0:
+            if self.__iteration % 10000 == 0 and self.__iteration != 0:
                 self.evaluate()
+                self.progress_recorder.write_after_evaluation_end(self.__iteration)
+                model_loading.save_model(buy_signal_agent)
+                model_loading.save_model(buy_order_agent)
+                model_loading.save_model(sell_signal_agent)
+                model_loading.save_model(sell_order_agent)
+
             self.start_new_epoch()
             gc.collect()
 
@@ -247,3 +254,4 @@ class Environment:
         assert len(self.data) == len(self.turning_point_max.index.levels[0])
         assert len(self.turning_point_max.index.levels[0]) == len(self.turning_point_min.index.levels[0])
         assert len(self.turning_point_min.index.levels[0]) == len(self.tech_indicator_matrix.index.levels[0])
+        

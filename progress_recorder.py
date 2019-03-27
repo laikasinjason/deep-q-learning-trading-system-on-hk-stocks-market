@@ -2,16 +2,18 @@ class ProgressRecorder():
     # Class for saving the performance indicators
 
     def __init__(self):
-        self.cum_profit = 0
-        self.max_cum_profit = 0
-        self.drawdown = 0
+        self.__cum_profit = 0
+        self.__max_cum_profit = 0
+        self.__drawdown = 0
+        self.__max_drawdown = 0
 
     def reset(self):
-        self.cum_profit = 0
-        self.max_cum_profit = 0
-        self.drawdown = 0
+        self.___cum_profit = 0
+        self.max__cum_profit = 0
+        self.__drawdown = 0
+        self.__max_drawdown = 0
 
-    def process_recorded_data(self, **data):
+    def process_recorded_data(self, **data, write_to_file=False):
         # date,bp,sp,profit,cumProfit,drawdown
         date = data['date']
         bp = 0
@@ -24,18 +26,35 @@ class ProgressRecorder():
         if 'profit' in data.keys():
             profit = data['profit']
 
-        self.cum_profit = self.cum_profit + profit
+        self.__cum_profit = self.__cum_profit + profit
 
-        self.max_cum_profit = self.cum_profit if self.cum_profit > self.max_cum_profit else self.max_cum_profit
-        self.drawdown = self.max_cum_profit - self.cum_profit if self.max_cum_profit > self.cum_profit else 0
+        self.__max_cum_profit = self.__cum_profit if self.__cum_profit > self.__max_cum_profit else self.__max_cum_profit
+        self.__drawdown = self.__max_cum_profit - self.__cum_profit if self.__max_cum_profit > self.__cum_profit else 0
+        self.__max_drawdown = self.__drawdown if self.__drawdown > self.__max_drawdown else self.__max_drawdown
 
-        result = str(date) + "," + str(bp) + "," + str(sp) + "," + str(profit) + "," + str(self.cum_profit) + "," + \
-                 str(self.drawdown) + "\n"
+        if write_to_file:
+            result = str(date) + "," + str(bp) + "," + str(sp) + "," + str(profit) + "," + str(self.__cum_profit) + "," + \
+                     str(self.__drawdown) + "\n"
 
-        self.write_to_file(result)
+            self.write_to_file(result, "evaluation.txt")
 
+    def get_max_drawdown(self):
+        return self.__max_drawdown
+        
+    def get_cum_profit(self):
+        return self.__cum_profit
+        
+    def write_after_evaluation_end(self, iteration):
+        result = str(iteration) + "," +  str(self.__cum_profit) + "," + str(self.__max_drawdown) + "\n"
+
+        self.write_to_file(result, "training_progress.txt")
+        
+        print("Iteration: " + self.__iteration + "/" + self.__num_train + ", "\
+                + "evaluation: max drawdown, cum profit " + self.progress_recorder.get_max_drawdown() + ", "\
+                + self.progress_recorder.get_cum_profit())
+        
     @staticmethod
-    def write_to_file(line):
+    def write_to_file(line, file):
         print("Writing line: " + line)
-        f = open("progress.txt", "a")
+        f = open(file, "a")
         f.write(line)
