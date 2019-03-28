@@ -86,9 +86,8 @@ class OrderModel(Model):
 
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
+        # DQN model
         self.model = self.__create_model()
-
-        # self.target_model = self.__create_model()
 
     def __create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
@@ -111,13 +110,13 @@ class OrderModel(Model):
 
 
 class SignalModel(Model):
-    action_map = {True: 0,
-                  False: 1}
+    action_map = {False: 0,
+                  True: 1}
 
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
+        # DQN model
         self.model = self.__create_model()
-        # self.target_model = self.__create_model()
 
     def __create_model(self, alpha=0.00025):
         model_input = keras.layers.Input((self.n_states,), name='inputs')
@@ -142,6 +141,8 @@ class SellSignalModel(SignalModel):
 
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
+        # target DQN model for smoothing the learning process
+        self.target_model = self.__create_model()
 
     # override the fit method, since sell signal agent has diff training algo
     def fit(self, state, reward, action_value, next_state):
@@ -150,7 +151,7 @@ class SellSignalModel(SignalModel):
         target = self.model.predict(state)
 
         next_state = np.expand_dims(next_state, axis=0)
-        next_Q_values = self.model.predict(next_state)
+        next_Q_values = self.target_model.predict(next_state)
         new_Q_values = reward + self.gamma * np.max(next_Q_values, axis=1)
 
         # Set the new Q values to target
@@ -161,3 +162,6 @@ class SellSignalModel(SignalModel):
         loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
 
         return loss
+        
+    def save_target_model(self):
+        self.target_model.set_weights(self.model.get_weights())

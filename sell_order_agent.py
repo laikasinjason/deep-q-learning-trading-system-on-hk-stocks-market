@@ -43,7 +43,8 @@ class SellOrderAgent(Agent):
             self.model.fit(self.state.value, reward, action)
         else:
             profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
-            record = {'sp': sp, 'date': date, 'profit': profit}
+            pf_return = (1 - self.environment.transaction_cost) * sp / self.environment.get_buy_price()
+            record = {'sp': sp, 'date': date, 'profit': profit, 'return': pf_return}
             self.environment.record(**record)
         print("processing sell order, sell price: " + str(sp))
         self.environment.invoke_buy_signal_agent(sp, date, self.environment.get_buy_price(), sp)

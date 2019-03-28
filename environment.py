@@ -155,10 +155,9 @@ class Environment:
     def record(self, **data):
         self.progress_recorder.process_recorded_data(**data)
 
-    def evaluate(self):
+    def evaluate(self, evaluation_write_file=False):
         print("Evaluation started.")
-
-        self.progress_recorder.reset()
+        self.progress_recorder.reset(evaluation_write_file)
         self.__evaluation_mode = True
 
         while self.__evaluation_mode:
@@ -237,9 +236,17 @@ class Environment:
     def get_prev_day(self, date):
         return data_engineering.get_prev_day(date, self.data)
 
-    def train_system(self):
+    def train_system(self, num_train=None):
+        if num_train is not None:
+            self.__num_train = num_train
+            
         while self.__iteration < self.__num_train:
-            if self.__iteration % 10000 == 0 and self.__iteration != 0:
+            self.start_new_epoch()           
+            
+            if self.__iteration % 1000 == 0:
+                self.sell_signal_agent.model.save_target_model()
+                print("Saved sell signal agent's target model.")
+            if self.__iteration % 10000 == 0:
                 self.evaluate()
                 self.progress_recorder.write_after_evaluation_end(self.__iteration)
                 model_loading.save_model(buy_signal_agent)
@@ -247,11 +254,11 @@ class Environment:
                 model_loading.save_model(sell_signal_agent)
                 model_loading.save_model(sell_order_agent)
 
-            self.start_new_epoch()
             gc.collect()
 
     def assert_data_consistency(self):
         assert len(self.data) == len(self.turning_point_max.index.levels[0])
         assert len(self.turning_point_max.index.levels[0]) == len(self.turning_point_min.index.levels[0])
         assert len(self.turning_point_min.index.levels[0]) == len(self.tech_indicator_matrix.index.levels[0])
+        
         
