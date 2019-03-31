@@ -29,7 +29,7 @@ class BuyOrderAgent(Agent):
 
         bp = ma5 + action / 100 * ma5
         d = bp - low
-        print("processing buy order, buy price: " + str(bp))
+        # print("processing buy order, buy price: " + str(bp))
 
         if d >= 0:
             reward = math.exp(-100 * d / low)
@@ -53,7 +53,7 @@ class BuyOrderAgent(Agent):
     def process_next_state(self, date):
         # the date get here is already the next day, but we need the same day of BSA as the state
         prev_date = self.environment.get_prev_day(date)
-        print("Buy order - processing date: " + str(date))
+        # print("Buy order - processing date: " + str(date))
         self.state = self.environment.get_buy_order_states_by_date(prev_date)
         action = self.get_action(self.state)
 

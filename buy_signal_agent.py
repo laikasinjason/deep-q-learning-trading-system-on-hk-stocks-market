@@ -11,7 +11,7 @@ class BuySignalAgent(Agent):
         self.buy_action = None  # save the action needed to pass to fit method
 
     def process_next_state(self, date):
-        print("Buy signal - processing date: " + str(date))
+        # print("Buy signal - processing date: " + str(date))
         self.state, self.buy_action = self.produce_state_and_get_action(date)
 
         if self.state is None or self.buy_action is None:

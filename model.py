@@ -55,12 +55,12 @@ class Model:
         action_pos = self.model.predict(state).argmax()
 
         action_value = self.action_map_to_value(action_pos)
-        print("Predicted action: " + str(action_value))
+        # print("Predicted action: " + str(action_value))
         return action_value
 
     def get_random_action(self):
         action_value = random.choice(list(self.action_map.keys()))
-        print("Random action: " + str(action_value))
+        # print("Random action: " + str(action_value))
         return action_value
 
     def action_map_to_value(self, search_action):
@@ -87,9 +87,9 @@ class OrderModel(Model):
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
         # DQN model
-        self.model = self.__create_model()
+        self.model = self._create_model()
 
-    def __create_model(self, alpha=0.00025):
+    def _create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
 
         model_input = keras.layers.Input((self.n_states,), name='inputs')
@@ -116,9 +116,9 @@ class SignalModel(Model):
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
         # DQN model
-        self.model = self.__create_model()
+        self.model = self._create_model()
 
-    def __create_model(self, alpha=0.00025):
+    def _create_model(self, alpha=0.00025):
         model_input = keras.layers.Input((self.n_states,), name='inputs')
         layer_1 = keras.layers.Dense(256, activation='relu')(model_input)
         layer_2 = keras.layers.Dense(128, activation='relu')(layer_1)
@@ -142,7 +142,7 @@ class SellSignalModel(SignalModel):
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
         # target DQN model for smoothing the learning process
-        self.target_model = self.__create_model()
+        self.target_model = super()._create_model()
 
     # override the fit method, since sell signal agent has diff training algo
     def fit(self, state, reward, action_value, next_state):
@@ -162,6 +162,6 @@ class SellSignalModel(SignalModel):
         loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
 
         return loss
-        
+
     def save_target_model(self):
         self.target_model.set_weights(self.model.get_weights())

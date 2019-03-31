@@ -43,17 +43,17 @@ class SellOrderAgent(Agent):
             self.model.fit(self.state.value, reward, action)
         else:
             profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
-            pf_return = (1 - self.environment.transaction_cost) * sp / self.environment.get_buy_price()
+            pf_return = ((1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()) / self.environment.get_buy_price()
             record = {'sp': sp, 'date': date, 'profit': profit, 'return': pf_return}
             self.environment.record(**record)
-        print("processing sell order, sell price: " + str(sp))
+        # print("processing sell order, sell price: " + str(sp))
         self.environment.invoke_buy_signal_agent(sp, date, self.environment.get_buy_price(), sp)
         return True
 
     def process_next_state(self, date):
         # the date get here is already the next day, but we need the same day of SSA as the state
         prev_date = self.environment.get_prev_day(date)
-        print("Sell order - processing date: " + str(date))
+        # print("Sell order - processing date: " + str(date))
         self.state = self.environment.get_sell_order_states_by_date(prev_date)
         action = self.get_action(self.state)
 

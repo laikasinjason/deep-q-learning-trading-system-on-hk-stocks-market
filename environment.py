@@ -76,7 +76,7 @@ class Environment:
             s = np.concatenate((tp_max.values.flatten(), tp_min.values.flatten(), tech_indicator.values.flatten(),
                                 profit_bin.values.flatten()), axis=0)
             state = self.State(date, s)
-            print("generated sellSignalStates, date " + str(date))
+            # print("generated sellSignalStates, date " + str(date))
             return state
         except KeyError:
             print("ERROR getting sell signal state for date " + str(date))
@@ -90,7 +90,7 @@ class Environment:
             s = np.concatenate((tp_max.values.flatten(), tp_min.values.flatten(), tech_indicator.values.flatten()),
                                axis=0)
             state = self.State(date, s)
-            print("generated buySignalStates, date " + str(date))
+            # print("generated buySignalStates, date " + str(date))
             return state
         except KeyError:
             print("ERROR getting buy signal state for date " + str(date))
@@ -103,7 +103,7 @@ class Environment:
             tech_indicator = self.tech_indicator_matrix.loc[date]
             s = tech_indicator.values.flatten()
             state = self.State(date, s)
-            print("generated sellOrderStates, date " + str(date))
+            # print("generated sellOrderStates, date " + str(date))
             return state
         except KeyError:
             print("ERROR getting sell order state for date " + str(date))
@@ -116,7 +116,7 @@ class Environment:
             tech_indicator = self.tech_indicator_matrix.loc[date]
             s = tech_indicator.values.flatten()
             state = self.State(date, s)
-            print("generated buyOrderStates, date " + str(date))
+            # print("generated buyOrderStates, date " + str(date))
             return state
         except KeyError:
             print("ERROR getting buy order state for date " + str(date))
@@ -129,6 +129,7 @@ class Environment:
         return market_data
 
     def produce_state(self, agent, date):
+        s = None
         if isinstance(agent, BuyOrderAgent):
             s = self.get_buy_order_states_by_date(date)
         elif isinstance(agent, SellOrderAgent):
@@ -159,6 +160,7 @@ class Environment:
         print("Evaluation started.")
         self.progress_recorder.reset(evaluation_write_file)
         self.__evaluation_mode = True
+        self.__date = self.test_index[0]
 
         while self.__evaluation_mode:
             # able to get next date's market data, continue to trade in evaluation mode
@@ -171,10 +173,7 @@ class Environment:
         self.__bp = None
         self.__terminated = False
 
-        if self.__evaluation_mode:
-            if self.__date is None:
-                self.__date = self.test_index[0]
-        else:
+        if not self.__evaluation_mode:
             self.__date = pd.Series(self.train_index).sample().values[0]
 
         while not self.__terminated:
@@ -226,7 +225,7 @@ class Environment:
             else:
                 self.__iteration = self.__iteration + 1
                 self.__date = None
-                print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train) + "\n")
+                print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
 
         self.__terminated = True
 
@@ -239,20 +238,20 @@ class Environment:
     def train_system(self, num_train=None):
         if num_train is not None:
             self.__num_train = num_train
-            
+
         while self.__iteration < self.__num_train:
-            self.start_new_epoch()           
-            
-            if self.__iteration % 1000 == 0:
-                self.sell_signal_agent.model.save_target_model()
+            self.start_new_epoch()
+
+            if self.__iteration % 10 == 0:  # 1000
+                self.__sell_signal_agent.model.save_target_model()
                 print("Saved sell signal agent's target model.")
-            if self.__iteration % 10000 == 0:
+            if self.__iteration % 100 == 0:  # 10000
                 self.evaluate()
-                self.progress_recorder.write_after_evaluation_end(self.__iteration)
-                model_loading.save_model(buy_signal_agent)
-                model_loading.save_model(buy_order_agent)
-                model_loading.save_model(sell_signal_agent)
-                model_loading.save_model(sell_order_agent)
+                self.progress_recorder.write_after_evaluation_end(self.__iteration, self.__num_train)
+                model_loading.save_model(self.__buy_signal_agent)
+                model_loading.save_model(self.__buy_order_agent)
+                model_loading.save_model(self.__sell_signal_agent)
+                model_loading.save_model(self.__sell_order_agent)
 
             gc.collect()
 
@@ -260,5 +259,3 @@ class Environment:
         assert len(self.data) == len(self.turning_point_max.index.levels[0])
         assert len(self.turning_point_max.index.levels[0]) == len(self.turning_point_min.index.levels[0])
         assert len(self.turning_point_min.index.levels[0]) == len(self.tech_indicator_matrix.index.levels[0])
-        
-        

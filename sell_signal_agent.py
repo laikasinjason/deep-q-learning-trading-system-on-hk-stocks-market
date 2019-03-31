@@ -43,7 +43,7 @@ class SellSignalAgent(Agent):
         return True
 
     def process_next_state(self, date):
-        print("Sell signal - processing date: " + str(date))
+        # print("Sell signal - processing date: " + str(date))
 
         self.state, sell_action = self.produce_state_and_get_action(date)
         if self.state is None or sell_action is None:

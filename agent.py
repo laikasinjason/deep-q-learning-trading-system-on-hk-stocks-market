@@ -41,6 +41,6 @@ class Agent:
             else:
                 action = self.model.predict(state.value)
 
-        print(self.__class__.__name__ + ": " + str(action))
+        # print(self.__class__.__name__ + ": " + str(action))
 
         return action
