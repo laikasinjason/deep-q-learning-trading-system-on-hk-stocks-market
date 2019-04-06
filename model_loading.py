@@ -13,14 +13,15 @@ def load_model(agent, loss_function='mean_squared_error'):
     # load weights into new model
     loaded_model.load_weights(str(agent.__class__.__name__) + ".h5")
     agent.model.model = loaded_model
-    print("Loaded model from disk")
+    print(str(agent.__class__.__name__) + " - Loaded model from disk")
 
     # compile the loaded model before further use
     optimizer = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
     agent.model.model.compile(optimizer, loss=loss_function)
 
     if isinstance(agent, SellSignalAgent):
-        agent.model.target_model = loaded_model
+        loaded_model2 = model_from_yaml(loaded_model_yaml)
+        agent.model.target_model = loaded_model2
         agent.model.target_model.compile(optimizer, loss=loss_function)
 
 

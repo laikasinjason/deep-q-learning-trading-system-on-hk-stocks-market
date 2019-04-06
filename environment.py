@@ -193,6 +193,9 @@ class Environment:
     def get_iteration(self):
         return self.__iteration
 
+    def set_iteration(self, iteration):
+        self.__iteration = iteration
+
     def invoke_buy_order_agent(self):
         # invoking buy order agent with the state of the stock at the same day
         self.__running_agent = self.__buy_order_agent
@@ -225,7 +228,7 @@ class Environment:
             else:
                 self.__iteration = self.__iteration + 1
                 self.__date = None
-                print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
+                # print("iteration: " + str(self.__iteration) + "/" + str(self.__num_train))
 
         self.__terminated = True
 
@@ -242,10 +245,10 @@ class Environment:
         while self.__iteration < self.__num_train:
             self.start_new_epoch()
 
-            if self.__iteration % 10 == 0:  # 1000
+            if self.__iteration % 1000 == 0:  # 1000
                 self.__sell_signal_agent.model.save_target_model()
                 print("Saved sell signal agent's target model.")
-            if self.__iteration % 100 == 0:  # 10000
+            if self.__iteration % 10000 == 0:  # 10000
                 self.evaluate()
                 self.progress_recorder.write_after_evaluation_end(self.__iteration, self.__num_train)
                 model_loading.save_model(self.__buy_signal_agent)
@@ -254,6 +257,12 @@ class Environment:
                 model_loading.save_model(self.__sell_order_agent)
 
             gc.collect()
+
+    def load_model(self):
+        model_loading.load_model(self.__buy_signal_agent)
+        model_loading.load_model(self.__buy_order_agent)
+        model_loading.load_model(self.__sell_signal_agent)
+        model_loading.load_model(self.__sell_order_agent)
 
     def assert_data_consistency(self):
         assert len(self.data) == len(self.turning_point_max.index.levels[0])

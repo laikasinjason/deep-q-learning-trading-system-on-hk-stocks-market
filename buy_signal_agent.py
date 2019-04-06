@@ -24,12 +24,12 @@ class BuySignalAgent(Agent):
         if not self.environment.get_evaluation_mode():
             if from_buy_order_agent:
                 reward = 0
-                print("reward: " + str(reward) + ", state: " + str(self.state.date) + ", bp: " + str(bp) + ", sp: " + str(sp))
+                # print("reward: " + str(reward) + ", state: " + str(self.state.date) + ", bp: " + str(bp) + ", sp: " + str(sp))
                 self.model.fit(self.state.value, reward, self.buy_action)
 
             else:
                 reward = ((1 - self.environment.transaction_cost) * sp - bp) / bp
-                print("reward: " + str(reward) + ", state: " + str(self.state.date) + ", bp: " + str(bp) + ", sp: " + str(sp))
+                # print("reward: " + str(reward) + ", state: " + str(self.state.date) + ", bp: " + str(bp) + ", sp: " + str(sp))
                 self.model.fit(self.state.value, reward, self.buy_action)
 
         self.environment.process_epoch_end(date)
