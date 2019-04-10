@@ -3,13 +3,13 @@ from model import SellSignalModel
 
 
 class SellSignalAgent(Agent):
+    # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
+    model = SellSignalModel(2, 120)
+    state = None  # save the state to be trained
+    action = None  # save the action needed to pass to fit method
+
     def __init__(self, environment):
         super().__init__(environment)
-
-        # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
-        self.model = SellSignalModel(2, 120)
-        self.state = None  # save the state to be trained
-        self.action = None  # save the action needed to pass to fit method
 
     def process_action(self, sell_action, last_state_date):
         market_data = self.environment.get_market_data_by_date(last_state_date)

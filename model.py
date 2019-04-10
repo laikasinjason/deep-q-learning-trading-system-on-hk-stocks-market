@@ -4,6 +4,7 @@ import keras
 import numpy as np
 from keras import backend as keras_backend
 from sklearn.preprocessing import OneHotEncoder
+from prioritized_exp_replay import Memory
 
 
 # Note: pass in_keras=False to use this function with raw numbers of numpy arrays for testing
@@ -27,6 +28,8 @@ class Model:
     Ns = number of samples in training data set.
     α = an arbitrary scaling factor usually 2-10.
     """
+    memory_size = 10000
+    memory = Memory(memory_size)
 
     def __init__(self, n_actions, n_states):
         self.n_actions = n_actions
@@ -37,18 +40,28 @@ class Model:
         self.target_model.set_weights(self.model.get_weights())
 
     def fit(self, state, reward, action_value):
-        # Run one fast-forward to get the Q-values for all actions
-        state = np.expand_dims(state, axis=0)
-        target = self.model.predict(state)
+        self.store_experience(state, reward, action_value)
+        
+        if(self.memory.is_full):
+            # Run one fast-forward to get the Q-values for all actions
+            state = np.expand_dims(state, axis=0)
+            target = self.model.predict(state)
 
-        # Set the new Q values to target
-        one_hot_action = self.value_map_to_action(action_value)
+            # Set the new Q values to target
+            one_hot_action = self.value_map_to_action(action_value)
 
-        target[one_hot_action.astype(bool)] = reward
+            target[one_hot_action.astype(bool)] = reward
 
-        loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
+            loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
 
-        return loss
+            return loss
+        else:
+            return np.nan
+    
+    def store_experience(self, state, reward, action_value):
+        # prioritized replay
+        transition = np.hstack((state, [action_value, reward]))
+        self.memory.store(transition)    # have high priority for newly arrived transition
 
     def predict(self, state):
         state = np.expand_dims(state, axis=0)
@@ -162,6 +175,11 @@ class SellSignalModel(SignalModel):
         loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
 
         return loss
+        
+    def store_experience(self, state, reward, action_value, next_state):
+        # prioritized replay
+        transition = np.hstack((state, [action_value, reward], next_state))
+        self.memory.store(transition)    # have high priority for newly arrived transition
 
     def save_target_model(self):
         self.target_model.set_weights(self.model.get_weights())

@@ -11,11 +11,24 @@ from sell_signal_agent import SellSignalAgent
 
 
 class Environment:
+
     class State:
         def __init__(self, date, value):
             self.date = date
             self.value = value
-
+          
+    __buy_signal_agent = None
+    __sell_signal_agent = None
+    __buy_order_agent = None
+    __sell_order_agent = None
+    # env variable          
+    __evaluation_mode = False
+    __iteration = 0
+    __terminated = None
+    __date = None  # current date on training
+    __bp = None
+    __running_agent = None  # the active agent in the trading process
+        
     def __init__(self, csv_file, progress_recorder, num_train, transaction_cost=0.01):
         self.data = data_engineering.load_data(csv_file)
         self.transaction_cost = transaction_cost
@@ -30,19 +43,10 @@ class Environment:
         self.train_index, self.test_index = data_engineering.split_data_set_index(self.data)
 
         self.progress_recorder = progress_recorder
-        self.__buy_signal_agent = None
-        self.__sell_signal_agent = None
-        self.__buy_order_agent = None
-        self.__sell_order_agent = None
+
 
         # env variable
-        self.__evaluation_mode = False
         self.__num_train = num_train
-        self.__iteration = 0
-        self.__terminated = None
-        self.__date = None  # current date on training
-        self.__bp = None
-        self.__running_agent = None  # the active agent in the trading process
 
         # simulate data for testing
         # test_len = 5
@@ -183,6 +187,18 @@ class Environment:
                 self.__date = self.get_next_day(self.__date)
                 if self.__date is None:
                     self.process_epoch_end(None, True)
+                    
+    def fill_up_memory(self):
+        while (!self.__buy_signal_agent.model.memory.is_full() or
+            !self.__sell_signal_agent.model.memory.is_full() or
+            !self.__buy_order_agent.model.memory.is_full() or
+            !self.__sell_order_agent.model.memory.is_full()):
+            self.start_new_epoch()
+
+            gc.collect()
+        
+    def get_random_action(self):
+        return self.__random_action
 
     def set_buy_price(self, bp):
         self.__bp = bp

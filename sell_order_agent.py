@@ -5,13 +5,14 @@ from model import OrderModel
 
 
 class SellOrderAgent(Agent):
+    # technical indicator 4*8
+    model = OrderModel(7, 32)
+    state = None  # save the state to be trained
+    action = None  # save the action needed to pass to fit method
+        
     def __init__(self, environment):
         super().__init__(environment)
 
-        # technical indicator 4*8
-        self.model = OrderModel(7, 32)
-        self.state = None  # save the state to be trained
-        self.action = None  # save the action needed to pass to fit method
 
     def process_action(self, action, date):
         # sell order agent consider state on T-1, and place order on T day
