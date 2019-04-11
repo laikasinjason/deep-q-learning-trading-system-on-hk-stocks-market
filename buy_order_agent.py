@@ -6,7 +6,7 @@ from model import OrderModel
 
 class BuyOrderAgent(Agent):
     # technical indicator 4*8
-    model = OrderModel(7, 32)
+    model = OrderModel(7, 32, 50)
     state = None  # save the state to be trained
         
     def __init__(self, environment):

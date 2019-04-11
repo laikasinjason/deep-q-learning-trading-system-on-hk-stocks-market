@@ -6,7 +6,7 @@ from model import OrderModel
 
 class SellOrderAgent(Agent):
     # technical indicator 4*8
-    model = OrderModel(7, 32)
+    model = OrderModel(7, 32, 50)
     state = None  # save the state to be trained
     action = None  # save the action needed to pass to fit method
         

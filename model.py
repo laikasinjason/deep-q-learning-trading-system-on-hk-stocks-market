@@ -1,6 +1,7 @@
 import random
 
 import keras
+import tensorflow as tf      # Deep Learning library
 import numpy as np
 from keras import backend as keras_backend
 from sklearn.preprocessing import OneHotEncoder
@@ -18,6 +19,84 @@ def huber_loss(a, b, in_keras=True):
         use_linear_term = keras_backend.cast(use_linear_term, 'float32')
     return use_linear_term * linear_term + (1 - use_linear_term) * quadratic_term
 
+class DDDQNNet:
+    def __init__(self, state_size, action_size, learning_rate, name):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.learning_rate = learning_rate
+        self.name = name
+        
+        
+        # We use tf.variable_scope here to know which network we're using (DQN or target_net)
+        # it will be useful when we will update our w- parameters (by copy the DQN parameters)
+        with tf.variable_scope(self.name):
+            
+            # We create the placeholders
+            # *state_size means that we take each elements of state_size in tuple hence is like if we wrote
+            # [None, 100, 120, 4]
+            self.inputs_ = tf.placeholder(tf.float32, [None, *state_size], name="inputs")
+            
+            #
+            self.ISWeights_ = tf.placeholder(tf.float32, [None,1], name='IS_weights')
+            
+            self.actions_ = tf.placeholder(tf.float32, [None, action_size], name="actions_")
+            
+            # Remember that target_Q is the R(s,a) + ymax Qhat(s', a')
+            self.target_Q = tf.placeholder(tf.float32, [None], name="target")
+            
+
+            # Input
+            self.dense1 = tf.layers.dense(inputs = self.inputs_,
+                      units = 512,
+                      activation = tf.nn.elu,
+                           kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                    name="dense1")
+            self.dense2 = tf.layers.dense(inputs = self.dense1,
+                      units = 256,
+                      activation = tf.nn.elu,
+                           kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                    name="dense2")
+                    
+            ## Here we separate into two streams
+            # The one that calculate V(s)
+            self.value_fc = tf.layers.dense(inputs = self.dense2,
+                                  units = 128,
+                                  activation = tf.nn.elu,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                name="value_fc")
+            
+            self.value = tf.layers.dense(inputs = self.value_fc,
+                                        units = 1,
+                                        activation = None,
+                                        kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                name="value")
+            
+            # The one that calculate A(s,a)
+            self.advantage_fc = tf.layers.dense(inputs = self.dense2,
+                                  units = 128,
+                                  activation = tf.nn.elu,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                name="advantage_fc")
+            
+            self.advantage = tf.layers.dense(inputs = self.advantage_fc,
+                                        units = self.action_size,
+                                        activation = None,
+                                        kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                name="advantages")
+            
+            # Agregating layer
+            # Q(s,a) = V(s) + (A(s,a) - 1/|A| * sum A(s,a'))
+            self.output = self.value + tf.subtract(self.advantage, tf.reduce_mean(self.advantage, axis=1, keepdims=True))
+              
+            # Q is our predicted Q value.
+            self.Q = tf.reduce_sum(tf.multiply(self.output, self.actions_), axis=1)
+            
+            # The loss is modified because of PER 
+            self.absolute_errors = tf.abs(self.target_Q - self.Q)# for updating Sumtree
+            
+            self.loss = tf.reduce_mean(self.ISWeights_ * tf.squared_difference(self.target_Q, self.Q))
+            
+            self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
 
 class Model:
     # tensorflow backend
@@ -31,9 +110,10 @@ class Model:
     memory_size = 10000
     memory = Memory(memory_size)
 
-    def __init__(self, n_actions, n_states):
+    def __init__(self, n_actions, n_states, batch_size):
         self.n_actions = n_actions
         self.n_states = n_states
+        self.batch_size = batch_size
         self.one_hot_encoder = OneHotEncoder(sparse=False)
 
     def copy_model(self):
@@ -43,16 +123,22 @@ class Model:
         self.store_experience(state, reward, action_value)
         
         if(self.memory.is_full):
+            tree_idx, batch, ISWeights = self.memory.sample(self.batch_size)
+            
+            states = np.array([each[0][0] for each in batch])
+            actions = np.array([each[0][1] for each in batch])
+            rewards = np.array([each[0][2] for each in batch]) 
+                
             # Run one fast-forward to get the Q-values for all actions
-            state = np.expand_dims(state, axis=0)
-            target = self.model.predict(state)
+            states = np.expand_dims(states, axis=0)
+            targets = self.model.predict(states)
 
             # Set the new Q values to target
-            one_hot_action = self.value_map_to_action(action_value)
+            one_hot_actions = self.value_map_to_action(actions)
 
-            target[one_hot_action.astype(bool)] = reward
+            targets[one_hot_actions.astype(bool)] = rewards
 
-            loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
+            loss = self.model.fit(states, targets, epochs=1, batch_size=len(rewards), verbose=0)
 
             return loss
         else:
@@ -85,6 +171,60 @@ class Model:
         value = self.action_map.get(value)
         action = self.one_hot_encoder.transform([[value]])
         return action
+        
+    def fit_model(self, batch_size):
+        ### LEARNING PART            
+        # Obtain random mini-batch from memory
+        tree_idx, batch, ISWeights_mb = self.memory.sample(self.batch_size)
+        
+        states_mb = np.array([each[0][0] for each in batch], ndmin=3)
+        actions_mb = np.array([each[0][1] for each in batch])
+        rewards_mb = np.array([each[0][2] for each in batch]) 
+        next_states_mb = np.array([each[0][3] for each in batch], ndmin=3)
+        dones_mb = np.array([each[0][4] for each in batch])
+
+        target_Qs_batch = []
+
+        # Set Q_target = r
+        for i in range(0, len(batch)):
+            # Reward as target
+            target_Qs_batch.append(rewards_mb[i])
+                
+
+        targets_mb = np.array([each for each in target_Qs_batch])
+
+        
+        _, loss, absolute_errors = sess.run([DQNetwork.optimizer, DQNetwork.loss, DQNetwork.absolute_errors],
+                            feed_dict={DQNetwork.inputs_: states_mb,
+                                       DQNetwork.target_Q: targets_mb,
+                                       DQNetwork.actions_: actions_mb,
+                                      DQNetwork.ISWeights_: ISWeights_mb})
+      
+        
+        
+        # Update priority
+        memory.batch_update(tree_idx, absolute_errors)
+        
+        
+        # Write TF Summaries
+        summary = sess.run(write_op, feed_dict={DQNetwork.inputs_: states_mb,
+                                           DQNetwork.target_Q: targets_mb,
+                                           DQNetwork.actions_: actions_mb,
+                                      DQNetwork.ISWeights_: ISWeights_mb})
+        writer.add_summary(summary, episode)
+        writer.flush()
+        
+        if tau > max_tau:
+            # Update the parameters of our TargetNetwork with DQN_weights
+            update_target = update_target_graph()
+            sess.run(update_target)
+            tau = 0
+            print("Model updated")
+
+        # Save model every 5 episodes
+        if episode % 5 == 0:
+            save_path = saver.save(sess, "./models/" + self.__class__.__name__  + ".ckpt")
+            print("Model Saved")
 
 
 class OrderModel(Model):
@@ -97,8 +237,8 @@ class OrderModel(Model):
                   2: 5,
                   3: 6}
 
-    def __init__(self, n_actions, n_states):
-        super().__init__(n_actions, n_states)
+    def __init__(self, n_actions, n_states, batch_size):
+        super().__init__(n_actions, n_states, batch_size)
         # DQN model
         self.model = self._create_model()
 
@@ -126,8 +266,8 @@ class SignalModel(Model):
     action_map = {False: 0,
                   True: 1}
 
-    def __init__(self, n_actions, n_states):
-        super().__init__(n_actions, n_states)
+    def __init__(self, n_actions, n_states, batch_size):
+        super().__init__(n_actions, n_states, batch_size)
         # DQN model
         self.model = self._create_model()
 
@@ -183,3 +323,70 @@ class SellSignalModel(SignalModel):
 
     def save_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
+        
+    def fit_model(self, batch_size):
+        ### LEARNING PART            
+        # Obtain random mini-batch from memory
+        tree_idx, batch, ISWeights_mb = self.memory.sample(self.batch_size)
+        
+        states_mb = np.array([each[0][0] for each in batch], ndmin=3)
+        actions_mb = np.array([each[0][1] for each in batch])
+        rewards_mb = np.array([each[0][2] for each in batch]) 
+        next_states_mb = np.array([each[0][3] for each in batch], ndmin=3)
+        dones_mb = np.array([each[0][4] for each in batch])
+
+        target_Qs_batch = []
+
+        
+        ### DOUBLE DQN Logic
+        # Use DQNNetwork to select the action to take at next_state (a') (action with the highest Q-value)
+        # Use TargetNetwork to calculate the Q_val of Q(s',a')
+        
+        # Get Q values for next_state 
+        q_next_state = sess.run(DQNetwork.output, feed_dict = {DQNetwork.inputs_: next_states_mb})
+        
+        # Calculate Qtarget for all actions that state
+        q_target_next_state = sess.run(TargetNetwork.output, feed_dict = {TargetNetwork.inputs_: next_states_mb})
+        
+        
+        # Q_target = r + gamma * Qtarget(s',a') 
+        for i in range(0, len(batch)):
+            # We got a'
+            action = np.argmax(q_next_state[i])
+
+            target = rewards_mb[i] + gamma * q_target_next_state[i][action]
+            target_Qs_batch.append(target)
+                
+
+        targets_mb = np.array([each for each in target_Qs_batch])
+
+        
+        _, loss, absolute_errors = sess.run([DQNetwork.optimizer, DQNetwork.loss, DQNetwork.absolute_errors],
+                            feed_dict={DQNetwork.inputs_: states_mb,
+                                       DQNetwork.target_Q: targets_mb,
+                                       DQNetwork.actions_: actions_mb,
+                                      DQNetwork.ISWeights_: ISWeights_mb})
+
+        # Update priority
+        memory.batch_update(tree_idx, absolute_errors)
+        
+        
+        # Write TF Summaries
+        summary = sess.run(write_op, feed_dict={DQNetwork.inputs_: states_mb,
+                                           DQNetwork.target_Q: targets_mb,
+                                           DQNetwork.actions_: actions_mb,
+                                      DQNetwork.ISWeights_: ISWeights_mb})
+        writer.add_summary(summary, episode)
+        writer.flush()
+        
+        if tau > max_tau:
+            # Update the parameters of our TargetNetwork with DQN_weights
+            update_target = update_target_graph()
+            sess.run(update_target)
+            tau = 0
+            print("Model updated")
+
+        # Save model every 5 episodes
+        if episode % 5 == 0:
+            save_path = saver.save(sess, "./models/" + self.__class__.__name__  + ".ckpt")
+            print("Model Saved")

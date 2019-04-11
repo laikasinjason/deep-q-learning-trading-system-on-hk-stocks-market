@@ -4,7 +4,7 @@ from model import SellSignalModel
 
 class SellSignalAgent(Agent):
     # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
-    model = SellSignalModel(2, 120)
+    model = SellSignalModel(2, 120, 50)
     state = None  # save the state to be trained
     action = None  # save the action needed to pass to fit method
 
