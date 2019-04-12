@@ -33,7 +33,8 @@ def save_model(agent):
     # serialize weights to HDF5
     agent.model.model.save_weights(str(agent.__class__.__name__) + ".h5")
     print("Saved " + str(agent.__class__.__name__) + " model to disk")
-    
+
+
 def save_tf_model(agent):
-    save_path = agent.model.saver.save(sess, "./models/" + agent.__class__.__name__  + ".ckpt")
+    save_path = agent.model.saver.save(agent.model.sess, "./models/" + agent.__class__.__name__ + ".ckpt")
     print("Model Saved")

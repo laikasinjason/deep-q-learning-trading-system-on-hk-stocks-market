@@ -7,10 +7,9 @@ class BuySignalAgent(Agent):
     model = SignalModel(2, 112, 50)
     state = None  # save the state to be trained
     buy_action = None  # save the action needed to pass to fit method
-        
+
     def __init__(self, environment):
         super().__init__(environment)
-
 
     def process_next_state(self, date):
         # print("Buy signal - processing date: " + str(date))

@@ -1,9 +1,9 @@
 import gc
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 
 import data_engineering.data_engineering as data_engineering
-import tensorflow as tf
 import model_loading
 from buy_order_agent import BuyOrderAgent
 from buy_signal_agent import BuySignalAgent
@@ -12,12 +12,11 @@ from sell_signal_agent import SellSignalAgent
 
 
 class Environment:
-
     class State:
         def __init__(self, date, value):
             self.date = date
             self.value = value
-          
+
     __buy_signal_agent = None
     __sell_signal_agent = None
     __buy_order_agent = None
@@ -29,8 +28,8 @@ class Environment:
     __date = None  # current date on training
     __bp = None
     __running_agent = None  # the active agent in the trading process
-    max_tau = 1000 #Tau is the C step where we update our target network
-        
+    max_tau = 1000  # Tau is the C step where we update our target network
+
     def __init__(self, csv_file, progress_recorder, num_train, transaction_cost=0.01):
         self.data = data_engineering.load_data(csv_file)
         self.transaction_cost = transaction_cost
@@ -63,7 +62,7 @@ class Environment:
         #     {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
 
         self.assert_data_consistency()
-        
+
         # reset tensorflow graph
         tf.reset_default_graph()
 
@@ -191,18 +190,13 @@ class Environment:
                 self.__date = self.get_next_day(self.__date)
                 if self.__date is None:
                     self.process_epoch_end(None, True)
-                    
+
     def fill_up_memory(self):
-        while (!self.__buy_signal_agent.model.memory.is_full() or
-            !self.__sell_signal_agent.model.memory.is_full() or
-            !self.__buy_order_agent.model.memory.is_full() or
-            !self.__sell_order_agent.model.memory.is_full()):
+        while not self.__buy_signal_agent.model.memory.is_full() or not self.__sell_signal_agent.model.memory.is_full() \
+                or not self.__buy_order_agent.model.memory.is_full() or not self.__sell_order_agent.model.memory.is_full():
             self.start_new_epoch()
 
             gc.collect()
-        
-    def get_random_action(self):
-        return self.__random_action
 
     def set_buy_price(self, bp):
         self.__bp = bp
@@ -265,10 +259,10 @@ class Environment:
         while self.__iteration < self.__num_train:
             self.start_new_epoch()
 
-            if self.__iteration % max_tau == 0:  # 1000
+            if self.__iteration % self.max_tau == 0:  # 1000
                 # self.__sell_signal_agent.model.save_target_model()
                 self.__sell_signal_agent.model.update_target_graph()
-                
+
                 print("Saved sell signal agent's target model.")
             if self.__iteration % 10000 == 0:  # 10000
                 self.evaluate()
