@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 import data_engineering.data_engineering as data_engineering
+import tensorflow as tf
 import model_loading
 from buy_order_agent import BuyOrderAgent
 from buy_signal_agent import BuySignalAgent
@@ -21,13 +22,14 @@ class Environment:
     __sell_signal_agent = None
     __buy_order_agent = None
     __sell_order_agent = None
-    # env variable          
+    # env variable
     __evaluation_mode = False
     __iteration = 0
     __terminated = None
     __date = None  # current date on training
     __bp = None
     __running_agent = None  # the active agent in the trading process
+    max_tau = 1000 #Tau is the C step where we update our target network
         
     def __init__(self, csv_file, progress_recorder, num_train, transaction_cost=0.01):
         self.data = data_engineering.load_data(csv_file)
@@ -43,7 +45,6 @@ class Environment:
         self.train_index, self.test_index = data_engineering.split_data_set_index(self.data)
 
         self.progress_recorder = progress_recorder
-
 
         # env variable
         self.__num_train = num_train
@@ -62,6 +63,9 @@ class Environment:
         #     {'date': [i for i in range(test_len)], 'col2': [2 * i for i in range(test_len)]}).set_index('date')
 
         self.assert_data_consistency()
+        
+        # reset tensorflow graph
+        tf.reset_default_graph()
 
     def get_sell_signal_states_by_date(self, bp, date):
         # get next day state, if next day state is not available, throws error
@@ -261,16 +265,18 @@ class Environment:
         while self.__iteration < self.__num_train:
             self.start_new_epoch()
 
-            if self.__iteration % 1000 == 0:  # 1000
-                self.__sell_signal_agent.model.save_target_model()
+            if self.__iteration % max_tau == 0:  # 1000
+                # self.__sell_signal_agent.model.save_target_model()
+                self.__sell_signal_agent.model.update_target_graph()
+                
                 print("Saved sell signal agent's target model.")
             if self.__iteration % 10000 == 0:  # 10000
                 self.evaluate()
                 self.progress_recorder.write_after_evaluation_end(self.__iteration, self.__num_train)
-                model_loading.save_model(self.__buy_signal_agent)
-                model_loading.save_model(self.__buy_order_agent)
-                model_loading.save_model(self.__sell_signal_agent)
-                model_loading.save_model(self.__sell_order_agent)
+                model_loading.save_tf_model(self.__buy_signal_agent)
+                model_loading.save_tf_model(self.__buy_order_agent)
+                model_loading.save_tf_model(self.__sell_signal_agent)
+                model_loading.save_tf_model(self.__sell_order_agent)
 
             gc.collect()
 

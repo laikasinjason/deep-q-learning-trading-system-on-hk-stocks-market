@@ -109,12 +109,18 @@ class Model:
     """
     memory_size = 10000
     memory = Memory(memory_size)
+    learning_rate =  0.00025      # Alpha (aka learning rate)
 
     def __init__(self, n_actions, n_states, batch_size):
         self.n_actions = n_actions
         self.n_states = n_states
         self.batch_size = batch_size
+        self.sess = tf.Session()
         self.one_hot_encoder = OneHotEncoder(sparse=False)
+        self.sess.run(tf.global_variables_initializer())
+        self.saver = tf.train.Saver()
+        # Setup TensorBoard Writer
+        # self.writer = tf.summary.FileWriter("/tensorboard/dddqn/1")
 
     def copy_model(self):
         self.target_model.set_weights(self.model.get_weights())
@@ -123,6 +129,9 @@ class Model:
         self.store_experience(state, reward, action_value)
         
         if(self.memory.is_full):
+            self.fit_model(self.batch_size)
+        
+            """
             tree_idx, batch, ISWeights = self.memory.sample(self.batch_size)
             
             states = np.array([each[0][0] for each in batch])
@@ -139,22 +148,24 @@ class Model:
             targets[one_hot_actions.astype(bool)] = rewards
 
             loss = self.model.fit(states, targets, epochs=1, batch_size=len(rewards), verbose=0)
+            """
 
-            return loss
-        else:
-            return np.nan
     
     def store_experience(self, state, reward, action_value):
         # prioritized replay
-        transition = np.hstack((state, [action_value, reward]))
+        transition = state, action_value, reward
         self.memory.store(transition)    # have high priority for newly arrived transition
 
     def predict(self, state):
-        state = np.expand_dims(state, axis=0)
-        action_pos = self.model.predict(state).argmax()
-
+        # state = np.expand_dims(state, axis=0)
+        # action_pos = self.model.predict(state).argmax()
+        
+        Qs = self.sess.run(DQNetwork.output, feed_dict = {DQNetwork.inputs_: state.reshape((1, *state.shape))})
+        # Take the biggest Q value (= the best action)
+        action_pos = np.argmax(Qs)
+        
         action_value = self.action_map_to_value(action_pos)
-        # print("Predicted action: " + str(action_value))
+        print("Predicted action: " + str(action_value))
         return action_value
 
     def get_random_action(self):
@@ -177,11 +188,9 @@ class Model:
         # Obtain random mini-batch from memory
         tree_idx, batch, ISWeights_mb = self.memory.sample(self.batch_size)
         
-        states_mb = np.array([each[0][0] for each in batch], ndmin=3)
+        states_mb = np.array([each[0][0] for each in batch])
         actions_mb = np.array([each[0][1] for each in batch])
-        rewards_mb = np.array([each[0][2] for each in batch]) 
-        next_states_mb = np.array([each[0][3] for each in batch], ndmin=3)
-        dones_mb = np.array([each[0][4] for each in batch])
+        rewards_mb = np.array([each[0][2] for each in batch])
 
         target_Qs_batch = []
 
@@ -189,21 +198,18 @@ class Model:
         for i in range(0, len(batch)):
             # Reward as target
             target_Qs_batch.append(rewards_mb[i])
-                
 
         targets_mb = np.array([each for each in target_Qs_batch])
 
         
-        _, loss, absolute_errors = sess.run([DQNetwork.optimizer, DQNetwork.loss, DQNetwork.absolute_errors],
+        _, loss, absolute_errors = self.sess.run([DQNetwork.optimizer, DQNetwork.loss, DQNetwork.absolute_errors],
                             feed_dict={DQNetwork.inputs_: states_mb,
                                        DQNetwork.target_Q: targets_mb,
                                        DQNetwork.actions_: actions_mb,
                                       DQNetwork.ISWeights_: ISWeights_mb})
-      
-        
         
         # Update priority
-        memory.batch_update(tree_idx, absolute_errors)
+        self.memory.batch_update(tree_idx, absolute_errors)
         
         
         # Write TF Summaries
@@ -213,18 +219,6 @@ class Model:
                                       DQNetwork.ISWeights_: ISWeights_mb})
         writer.add_summary(summary, episode)
         writer.flush()
-        
-        if tau > max_tau:
-            # Update the parameters of our TargetNetwork with DQN_weights
-            update_target = update_target_graph()
-            sess.run(update_target)
-            tau = 0
-            print("Model updated")
-
-        # Save model every 5 episodes
-        if episode % 5 == 0:
-            save_path = saver.save(sess, "./models/" + self.__class__.__name__  + ".ckpt")
-            print("Model Saved")
 
 
 class OrderModel(Model):
@@ -240,7 +234,9 @@ class OrderModel(Model):
     def __init__(self, n_actions, n_states, batch_size):
         super().__init__(n_actions, n_states, batch_size)
         # DQN model
-        self.model = self._create_model()
+        # self.model = self._create_model()
+        # Instantiate the DQNetwork
+        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
 
     def _create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
@@ -269,7 +265,9 @@ class SignalModel(Model):
     def __init__(self, n_actions, n_states, batch_size):
         super().__init__(n_actions, n_states, batch_size)
         # DQN model
-        self.model = self._create_model()
+        # self.model = self._create_model()
+        # Instantiate the DQNetwork
+        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
 
     def _create_model(self, alpha=0.00025):
         model_input = keras.layers.Input((self.n_states,), name='inputs')
@@ -290,15 +288,41 @@ class SignalModel(Model):
 
 
 class SellSignalModel(SignalModel):
-    gamma = 0.99
+    gamma = 0.99 # Discounting rate
 
     def __init__(self, n_actions, n_states):
         super().__init__(n_actions, n_states)
         # target DQN model for smoothing the learning process
-        self.target_model = super()._create_model()
+        # self.target_model = super()._create_model()
+        # Instantiate the target network
+        self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, name="TargetNetwork")
+        update_target = self.update_target_graph()
 
     # override the fit method, since sell signal agent has diff training algo
     def fit(self, state, reward, action_value, next_state):
+        self.store_experience(state, reward, action_value, next_state)
+        
+        if(self.memory.is_full):
+            self.fit_model(self.batch_size)
+        
+        """
+            tree_idx, batch, ISWeights = self.memory.sample(self.batch_size)
+            
+            states = np.array([each[0][0] for each in batch])
+            actions = np.array([each[0][1] for each in batch])
+            rewards = np.array([each[0][2] for each in batch]) 
+                
+            # Run one fast-forward to get the Q-values for all actions
+            states = np.expand_dims(states, axis=0)
+            targets = self.model.predict(states)
+
+            # Set the new Q values to target
+            one_hot_actions = self.value_map_to_action(actions)
+
+            targets[one_hot_actions.astype(bool)] = rewards
+
+            loss = self.model.fit(states, targets, epochs=1, batch_size=len(rewards), verbose=0)
+         
         # Run one fast-forward to get the Q-values for all actions
         state = np.expand_dims(state, axis=0)
         target = self.model.predict(state)
@@ -313,27 +337,45 @@ class SellSignalModel(SignalModel):
         target[one_hot_action.astype(bool)] = new_Q_values
 
         loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
+        """
 
-        return loss
         
     def store_experience(self, state, reward, action_value, next_state):
         # prioritized replay
-        transition = np.hstack((state, [action_value, reward], next_state))
+        transition = state, action_value, reward, next_state
         self.memory.store(transition)    # have high priority for newly arrived transition
 
     def save_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
         
+        
+    # Copy the parameters of DQN to Target_network
+    def update_target_graph():
+        
+        # Get the parameters of our DQNNetwork
+        from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "DQNetwork")
+        
+        # Get the parameters of our Target_network
+        to_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "TargetNetwork")
+
+        op_holder = []
+        
+        # Update our target_network parameters with DQNNetwork parameters
+        for from_var,to_var in zip(from_vars,to_vars):
+            op_holder.append(to_var.assign(from_var))
+            
+        self.sess.run(op_holder)
+        print("Model updated")
+        
     def fit_model(self, batch_size):
-        ### LEARNING PART            
+        ### LEARNING PART
         # Obtain random mini-batch from memory
         tree_idx, batch, ISWeights_mb = self.memory.sample(self.batch_size)
         
-        states_mb = np.array([each[0][0] for each in batch], ndmin=3)
+        states_mb = np.array([each[0][0] for each in batch])
         actions_mb = np.array([each[0][1] for each in batch])
         rewards_mb = np.array([each[0][2] for each in batch]) 
-        next_states_mb = np.array([each[0][3] for each in batch], ndmin=3)
-        dones_mb = np.array([each[0][4] for each in batch])
+        next_states_mb = np.array([each[0][3] for each in batch])
 
         target_Qs_batch = []
 
@@ -343,10 +385,10 @@ class SellSignalModel(SignalModel):
         # Use TargetNetwork to calculate the Q_val of Q(s',a')
         
         # Get Q values for next_state 
-        q_next_state = sess.run(DQNetwork.output, feed_dict = {DQNetwork.inputs_: next_states_mb})
+        q_next_state = self.sess.run(DQNetwork.output, feed_dict = {DQNetwork.inputs_: next_states_mb})
         
         # Calculate Qtarget for all actions that state
-        q_target_next_state = sess.run(TargetNetwork.output, feed_dict = {TargetNetwork.inputs_: next_states_mb})
+        q_target_next_state = self.sess.run(TargetNetwork.output, feed_dict = {TargetNetwork.inputs_: next_states_mb})
         
         
         # Q_target = r + gamma * Qtarget(s',a') 
@@ -361,32 +403,21 @@ class SellSignalModel(SignalModel):
         targets_mb = np.array([each for each in target_Qs_batch])
 
         
-        _, loss, absolute_errors = sess.run([DQNetwork.optimizer, DQNetwork.loss, DQNetwork.absolute_errors],
+        _, loss, absolute_errors = self.sess.run([DQNetwork.optimizer, DQNetwork.loss, DQNetwork.absolute_errors],
                             feed_dict={DQNetwork.inputs_: states_mb,
                                        DQNetwork.target_Q: targets_mb,
                                        DQNetwork.actions_: actions_mb,
                                       DQNetwork.ISWeights_: ISWeights_mb})
 
         # Update priority
-        memory.batch_update(tree_idx, absolute_errors)
+        # Update priority
+        self.memory.batch_update(tree_idx, absolute_errors)
         
         
         # Write TF Summaries
-        summary = sess.run(write_op, feed_dict={DQNetwork.inputs_: states_mb,
-                                           DQNetwork.target_Q: targets_mb,
-                                           DQNetwork.actions_: actions_mb,
-                                      DQNetwork.ISWeights_: ISWeights_mb})
-        writer.add_summary(summary, episode)
-        writer.flush()
-        
-        if tau > max_tau:
-            # Update the parameters of our TargetNetwork with DQN_weights
-            update_target = update_target_graph()
-            sess.run(update_target)
-            tau = 0
-            print("Model updated")
-
-        # Save model every 5 episodes
-        if episode % 5 == 0:
-            save_path = saver.save(sess, "./models/" + self.__class__.__name__  + ".ckpt")
-            print("Model Saved")
+        # summary = self.sess.run(write_op, feed_dict={DQNetwork.inputs_: states_mb,
+        #                                    DQNetwork.target_Q: targets_mb,
+        #                                    DQNetwork.actions_: actions_mb,
+        #                               DQNetwork.ISWeights_: ISWeights_mb})
+        # writer.add_summary(summary, episode)
+        # writer.flush()
