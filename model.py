@@ -118,8 +118,6 @@ class Model:
         self.batch_size = batch_size
         self.sess = tf.Session()
         self.one_hot_encoder = OneHotEncoder(sparse=False)
-        self.sess.run(tf.global_variables_initializer())
-        self.saver = tf.train.Saver()
         # Setup TensorBoard Writer
         # self.writer = tf.summary.FileWriter("/tensorboard/dddqn/1")
 
@@ -237,6 +235,8 @@ class OrderModel(Model):
         # self.model = self._create_model()
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
+        self.saver = tf.train.Saver()
+        self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
@@ -268,6 +268,8 @@ class SignalModel(Model):
         # self.model = self._create_model()
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
+        self.saver = tf.train.Saver()
+        self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
         model_input = keras.layers.Input((self.n_states,), name='inputs')
@@ -290,12 +292,13 @@ class SignalModel(Model):
 class SellSignalModel(SignalModel):
     gamma = 0.99  # Discounting rate
 
-    def __init__(self, n_actions, n_states):
-        super().__init__(n_actions, n_states)
+    def __init__(self, n_actions, n_states, batch_size):
+        super().__init__(n_actions, n_states, batch_size)
         # target DQN model for smoothing the learning process
         # self.target_model = super()._create_model()
         # Instantiate the target network
         self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, name="TargetNetwork")
+        self.sess.run(tf.global_variables_initializer())
         self.update_target_graph()
 
     # override the fit method, since sell signal agent has diff training algo

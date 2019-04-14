@@ -3,13 +3,14 @@ from model import SignalModel
 
 
 class BuySignalAgent(Agent):
-    # high turning point 5*8, low turning point 5*8, technical indicator 4*8
-    model = SignalModel(2, 112, 50)
+
     state = None  # save the state to be trained
     buy_action = None  # save the action needed to pass to fit method
 
     def __init__(self, environment):
         super().__init__(environment)
+        # high turning point 5*8, low turning point 5*8, technical indicator 4*8
+        self.model = SignalModel(2, 112, 50)
 
     def process_next_state(self, date):
         # print("Buy signal - processing date: " + str(date))

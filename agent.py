@@ -30,7 +30,7 @@ class Agent:
     def get_action(self, state):
         if self.environment.get_evaluation_mode():
             action = self.model.predict(state.value)
-        else if not self.model.memory.is_full():
+        elif not self.model.memory.is_full():
             action = self.model.get_random_action()
             print("Random action for filling memory")
         else:

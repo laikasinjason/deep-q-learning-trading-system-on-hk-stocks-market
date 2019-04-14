@@ -5,13 +5,13 @@ from model import OrderModel
 
 
 class SellOrderAgent(Agent):
-    # technical indicator 4*8
-    model = OrderModel(7, 32, 50)
     state = None  # save the state to be trained
     action = None  # save the action needed to pass to fit method
 
     def __init__(self, environment):
         super().__init__(environment)
+        # technical indicator 4*8
+        self.model = OrderModel(7, 32, 50)
 
     def process_action(self, action, date):
         # sell order agent consider state on T-1, and place order on T day
@@ -44,7 +44,7 @@ class SellOrderAgent(Agent):
         else:
             profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
             pf_return = ((
-                                     1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()) / self.environment.get_buy_price()
+                                 1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()) / self.environment.get_buy_price()
             record = {'sp': sp, 'date': date, 'profit': profit, 'return': pf_return}
             self.environment.record(**record)
         # print("processing sell order, sell price: " + str(sp))
