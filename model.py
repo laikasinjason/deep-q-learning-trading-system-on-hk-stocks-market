@@ -236,6 +236,7 @@ class OrderModel(Model):
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
         self.saver = tf.train.Saver()
+        self.sess.run(tf.report_uninitialized_variables())
         self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
@@ -269,6 +270,7 @@ class SignalModel(Model):
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
         self.saver = tf.train.Saver()
+        self.sess.run(tf.report_uninitialized_variables())
         self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
@@ -298,6 +300,9 @@ class SellSignalModel(SignalModel):
         # self.target_model = super()._create_model()
         # Instantiate the target network
         self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, name="TargetNetwork")
+        
+        # reinstantiate saver, as we have target model here
+        self.saver = tf.train.Saver()
         self.sess.run(tf.global_variables_initializer())
         self.update_target_graph()
 
