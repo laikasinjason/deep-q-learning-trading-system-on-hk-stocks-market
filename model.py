@@ -56,7 +56,7 @@ class DDDQNNet:
                                           kernel_initializer=tf.contrib.layers.xavier_initializer(),
                                           name="dense2")
 
-            ## Here we separate into two streams
+            # Here we separate into two streams
             # The one that calculate V(s)
             self.value_fc = tf.layers.dense(inputs=self.dense2,
                                             units=128,
@@ -83,7 +83,7 @@ class DDDQNNet:
                                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
                                              name="advantages")
 
-            # Agregating layer
+            # Aggregating layer
             # Q(s,a) = V(s) + (A(s,a) - 1/|A| * sum A(s,a'))
             self.output = self.value + tf.subtract(self.advantage,
                                                    tf.reduce_mean(self.advantage, axis=1, keepdims=True))
