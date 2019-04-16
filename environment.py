@@ -275,10 +275,10 @@ class Environment:
             gc.collect()
 
     def load_model(self):
-        model_loading.load_model(self.__buy_signal_agent)
-        model_loading.load_model(self.__buy_order_agent)
-        model_loading.load_model(self.__sell_signal_agent)
-        model_loading.load_model(self.__sell_order_agent)
+        model_loading.load_tf_model(self.__buy_signal_agent)
+        model_loading.load_tf_model(self.__buy_order_agent)
+        model_loading.load_tf_model(self.__sell_signal_agent)
+        model_loading.load_tf_model(self.__sell_order_agent)
 
     def assert_data_consistency(self):
         assert len(self.data) == len(self.turning_point_max.index.levels[0])

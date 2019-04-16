@@ -38,3 +38,9 @@ def save_model(agent):
 def save_tf_model(agent):
     save_path = agent.model.saver.save(agent.model.sess, "./models/" + agent.__class__.__name__ + ".ckpt")
     print("Model Saved")
+    
+    
+def load_tf_model(agent):
+    # Restore variables from disk.
+    agent.model.saver.restore(agent.model.sess, "./models/" + agent.__class__.__name__ + ".ckpt")
+    print(str(agent.__class__.__name__) + " - Loaded model from disk")

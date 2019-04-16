@@ -11,6 +11,7 @@ class BuySignalAgent(Agent):
         super().__init__(environment)
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8
         self.model = SignalModel(2, [112], 50)
+        self.model.init()
 
     def process_next_state(self, date):
         # print("Buy signal - processing date: " + str(date))

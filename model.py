@@ -116,10 +116,13 @@ class Model:
         self.n_actions = n_actions
         self.n_states = n_states
         self.batch_size = batch_size
-        self.sess = tf.Session()
+        self.graph = tf.Graph()
+        with self.graph.as_default():
+            self.sess = tf.Session()
         self.one_hot_encoder = OneHotEncoder(sparse=False)
         # Setup TensorBoard Writer
         # self.writer = tf.summary.FileWriter("/tensorboard/dddqn/1")
+
 
     def copy_model(self):
         self.target_model.set_weights(self.model.get_weights())
@@ -235,8 +238,12 @@ class OrderModel(Model):
         # self.model = self._create_model()
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
+
+        
+    def init(self):
         self.saver = tf.train.Saver()
-        self.sess.run(tf.report_uninitialized_variables())
+        print(self.sess.run(tf.report_uninitialized_variables()))
+        print(tf.get_default_graph().get_operations())
         self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
@@ -269,8 +276,11 @@ class SignalModel(Model):
         # self.model = self._create_model()
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
+        
+    def init(self):
         self.saver = tf.train.Saver()
-        self.sess.run(tf.report_uninitialized_variables())
+        print(self.sess.run(tf.report_uninitialized_variables()))
+        print(tf.get_default_graph().get_operations())
         self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
@@ -301,9 +311,8 @@ class SellSignalModel(SignalModel):
         # Instantiate the target network
         self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, name="TargetNetwork")
         
-        # reinstantiate saver, as we have target model here
-        self.saver = tf.train.Saver()
-        self.sess.run(tf.global_variables_initializer())
+    def init(self):
+        super().init()
         self.update_target_graph()
 
     # override the fit method, since sell signal agent has diff training algo
