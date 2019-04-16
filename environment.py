@@ -194,6 +194,7 @@ class Environment:
     def fill_up_memory(self):
         while not self.__buy_signal_agent.model.memory.is_full() or not self.__sell_signal_agent.model.memory.is_full() \
                 or not self.__buy_order_agent.model.memory.is_full() or not self.__sell_order_agent.model.memory.is_full():
+            print("filling")
             self.start_new_epoch()
 
             gc.collect()

@@ -22,7 +22,7 @@ def huber_loss(a, b, in_keras=True):
 
 
 class DDDQNNet:
-    def __init__(self, state_size, action_size, learning_rate, name):
+    def __init__(self, graph, state_size, action_size, learning_rate, name):
         self.state_size = state_size
         self.action_size = action_size
         self.learning_rate = learning_rate
@@ -30,73 +30,74 @@ class DDDQNNet:
 
         # We use tf.variable_scope here to know which network we're using (DQN or target_net)
         # it will be useful when we will update our w- parameters (by copy the DQN parameters)
-        with tf.variable_scope(self.name):
-            # We create the placeholders
-            # *state_size means that we take each elements of state_size in tuple hence is like if we wrote
-            # [None, 100, 120, 4]
-            self.inputs_ = tf.placeholder(tf.float32, [None, *state_size], name="inputs")
+        with graph.as_default():
+            with tf.variable_scope(self.name):
+                # We create the placeholders
+                # *state_size means that we take each elements of state_size in tuple hence is like if we wrote
+                # [None, 100, 120, 4]
+                self.inputs_ = tf.placeholder(tf.float32, [None, *state_size], name="inputs")
 
-            #
-            self.ISWeights_ = tf.placeholder(tf.float32, [None, 1], name='IS_weights')
+                #
+                self.ISWeights_ = tf.placeholder(tf.float32, [None, 1], name='IS_weights')
 
-            self.actions_ = tf.placeholder(tf.float32, [None, action_size], name="actions_")
+                self.actions_ = tf.placeholder(tf.float32, [None, action_size], name="actions_")
 
-            # Remember that target_Q is the R(s,a) + ymax Qhat(s', a')
-            self.target_Q = tf.placeholder(tf.float32, [None], name="target")
+                # Remember that target_Q is the R(s,a) + ymax Qhat(s', a')
+                self.target_Q = tf.placeholder(tf.float32, [None], name="target")
 
-            # Input
-            self.dense1 = tf.layers.dense(inputs=self.inputs_,
-                                          units=512,
-                                          activation=tf.nn.elu,
-                                          kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                          name="dense1")
-            self.dense2 = tf.layers.dense(inputs=self.dense1,
-                                          units=256,
-                                          activation=tf.nn.elu,
-                                          kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                          name="dense2")
+                # Input
+                self.dense1 = tf.layers.dense(inputs=self.inputs_,
+                                              units=512,
+                                              activation=tf.nn.elu,
+                                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                              name="dense1")
+                self.dense2 = tf.layers.dense(inputs=self.dense1,
+                                              units=256,
+                                              activation=tf.nn.elu,
+                                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                              name="dense2")
 
-            # Here we separate into two streams
-            # The one that calculate V(s)
-            self.value_fc = tf.layers.dense(inputs=self.dense2,
-                                            units=128,
-                                            activation=tf.nn.elu,
-                                            kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                            name="value_fc")
-
-            self.value = tf.layers.dense(inputs=self.value_fc,
-                                         units=1,
-                                         activation=None,
-                                         kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                         name="value")
-
-            # The one that calculate A(s,a)
-            self.advantage_fc = tf.layers.dense(inputs=self.dense2,
+                # Here we separate into two streams
+                # The one that calculate V(s)
+                self.value_fc = tf.layers.dense(inputs=self.dense2,
                                                 units=128,
                                                 activation=tf.nn.elu,
                                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                                name="advantage_fc")
+                                                name="value_fc")
 
-            self.advantage = tf.layers.dense(inputs=self.advantage_fc,
-                                             units=self.action_size,
+                self.value = tf.layers.dense(inputs=self.value_fc,
+                                             units=1,
                                              activation=None,
                                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                             name="advantages")
+                                             name="value")
 
-            # Aggregating layer
-            # Q(s,a) = V(s) + (A(s,a) - 1/|A| * sum A(s,a'))
-            self.output = self.value + tf.subtract(self.advantage,
-                                                   tf.reduce_mean(self.advantage, axis=1, keepdims=True))
+                # The one that calculate A(s,a)
+                self.advantage_fc = tf.layers.dense(inputs=self.dense2,
+                                                    units=128,
+                                                    activation=tf.nn.elu,
+                                                    kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                                    name="advantage_fc")
 
-            # Q is our predicted Q value.
-            self.Q = tf.reduce_sum(tf.multiply(self.output, self.actions_), axis=1)
+                self.advantage = tf.layers.dense(inputs=self.advantage_fc,
+                                                 units=self.action_size,
+                                                 activation=None,
+                                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                                 name="advantages")
 
-            # The loss is modified because of PER 
-            self.absolute_errors = tf.abs(self.target_Q - self.Q)  # for updating Sumtree
+                # Aggregating layer
+                # Q(s,a) = V(s) + (A(s,a) - 1/|A| * sum A(s,a'))
+                self.output = self.value + tf.subtract(self.advantage,
+                                                       tf.reduce_mean(self.advantage, axis=1, keepdims=True))
 
-            self.loss = tf.reduce_mean(self.ISWeights_ * tf.squared_difference(self.target_Q, self.Q))
+                # Q is our predicted Q value.
+                self.Q = tf.reduce_sum(tf.multiply(self.output, self.actions_), axis=1)
 
-            self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
+                # The loss is modified because of PER
+                self.absolute_errors = tf.abs(self.target_Q - self.Q)  # for updating Sumtree
+
+                self.loss = tf.reduce_mean(self.ISWeights_ * tf.squared_difference(self.target_Q, self.Q))
+
+                self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
 
 
 class Model:
@@ -109,7 +110,6 @@ class Model:
     α = an arbitrary scaling factor usually 2-10.
     """
     memory_size = 10000
-    memory = Memory(memory_size)
     learning_rate = 0.00025  # Alpha (aka learning rate)
 
     def __init__(self, n_actions, n_states, batch_size):
@@ -117,12 +117,13 @@ class Model:
         self.n_states = n_states
         self.batch_size = batch_size
         self.graph = tf.Graph()
+        self.memory = Memory(self.memory_size)
         with self.graph.as_default():
             self.sess = tf.Session()
+        tf.reset_default_graph()
         self.one_hot_encoder = OneHotEncoder(sparse=False)
         # Setup TensorBoard Writer
         # self.writer = tf.summary.FileWriter("/tensorboard/dddqn/1")
-
 
     def copy_model(self):
         self.target_model.set_weights(self.model.get_weights())
@@ -130,7 +131,7 @@ class Model:
     def fit(self, state, reward, action_value, next_state=None):
         self.store_experience(state, reward, action_value)
 
-        if self.memory.is_full:
+        if self.memory.is_full():
             self.fit_model(self.batch_size)
 
             """
@@ -237,14 +238,12 @@ class OrderModel(Model):
         # DQN model
         # self.model = self._create_model()
         # Instantiate the DQNetwork
-        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
+        self.model = DDDQNNet(self.graph, n_states, n_actions, self.learning_rate, name="DQNetwork")
 
-        
     def init(self):
-        self.saver = tf.train.Saver()
-        print(self.sess.run(tf.report_uninitialized_variables()))
-        print(tf.get_default_graph().get_operations())
-        self.sess.run(tf.global_variables_initializer())
+        with self.graph.as_default():
+            self.saver = tf.train.Saver()
+            self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
@@ -275,13 +274,12 @@ class SignalModel(Model):
         # DQN model
         # self.model = self._create_model()
         # Instantiate the DQNetwork
-        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name="DQNetwork")
-        
+        self.model = DDDQNNet(self.graph, n_states, n_actions, self.learning_rate, name="DQNetwork")
+
     def init(self):
-        self.saver = tf.train.Saver()
-        print(self.sess.run(tf.report_uninitialized_variables()))
-        print(tf.get_default_graph().get_operations())
-        self.sess.run(tf.global_variables_initializer())
+        with self.graph.as_default():
+            self.saver = tf.train.Saver()
+            self.sess.run(tf.global_variables_initializer())
 
     def _create_model(self, alpha=0.00025):
         model_input = keras.layers.Input((self.n_states,), name='inputs')
@@ -309,8 +307,8 @@ class SellSignalModel(SignalModel):
         # target DQN model for smoothing the learning process
         # self.target_model = super()._create_model()
         # Instantiate the target network
-        self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, name="TargetNetwork")
-        
+        self.target_model = DDDQNNet(self.graph, n_states, n_actions, self.learning_rate, name="TargetNetwork")
+
     def init(self):
         super().init()
         self.update_target_graph()
@@ -319,7 +317,7 @@ class SellSignalModel(SignalModel):
     def fit(self, state, reward, action_value, next_state=None):
         self.store_experience(state, reward, action_value, next_state)
 
-        if self.memory.is_full:
+        if self.memory.is_full():
             self.fit_model(self.batch_size)
 
         """
@@ -380,7 +378,7 @@ class SellSignalModel(SignalModel):
             op_holder.append(to_var.assign(from_var))
 
         self.sess.run(op_holder)
-        print("Model updated")
+        print("Taget Model updated")
 
     def fit_model(self, batch_size):
         # LEARNING PART
