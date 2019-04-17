@@ -11,7 +11,6 @@ class BuyOrderAgent(Agent):
         super().__init__(environment)
         # technical indicator 4*8
         self.model = OrderModel(7, [32], 50)
-        self.model.init()
 
     def process_action(self, action, date):
         # buy order agent consider state on T-1, and place order on T day

@@ -274,6 +274,10 @@ class Environment:
                 model_loading.save_tf_model(self.__sell_order_agent)
 
             gc.collect()
+            
+    def init(self):
+        Model.init() # init tensorflow global initializer
+        self.__sell_signal_agent().model.update_target_graph() # sync NN and targetNN
 
     def load_model(self):
         model_loading.load_tf_model(self.__buy_signal_agent)
