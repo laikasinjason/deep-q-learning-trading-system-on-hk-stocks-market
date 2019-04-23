@@ -7,6 +7,7 @@ import data_engineering.data_engineering as data_engineering
 import model_loading
 from buy_order_agent import BuyOrderAgent
 from buy_signal_agent import BuySignalAgent
+from model import Model
 from sell_order_agent import SellOrderAgent
 from sell_signal_agent import SellSignalAgent
 
@@ -274,10 +275,10 @@ class Environment:
                 model_loading.save_tf_model(self.__sell_order_agent)
 
             gc.collect()
-            
+
     def init(self):
-        Model.init() # init tensorflow global initializer
-        self.__sell_signal_agent().model.update_target_graph() # sync NN and targetNN
+        Model.init()  # init tensorflow global initializer
+        self.__sell_signal_agent().model.update_target_graph()  # sync NN and targetNN
 
     def load_model(self):
         model_loading.load_tf_model(self.__buy_signal_agent)

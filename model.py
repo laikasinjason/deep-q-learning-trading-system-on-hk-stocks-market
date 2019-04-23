@@ -112,7 +112,7 @@ class Model:
     learning_rate = 0.00025  # Alpha (aka learning rate)
     sess = tf.Session()
     saver = tf.train.Saver()
-    
+
     def __init__(self, n_actions, n_states, batch_size):
         self.n_actions = n_actions
         self.n_states = n_states
@@ -125,7 +125,7 @@ class Model:
     @classmethod
     def init(cls):
         cls.sess.run(tf.global_variables_initializer())
-            
+
     def copy_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
@@ -196,7 +196,7 @@ class Model:
         rewards_mb = np.array([each[0][2] for each in batch])
 
         target_Qs_batch = []
-        
+
         actions_mb = self.value_map_to_action(actions_mb)
 
         # Set Q_target = r
@@ -236,13 +236,12 @@ class OrderModel(Model):
                   2: 5,
                   3: 6}
 
-    def __init__(self, n_actions, n_states, batch_size):
+    def __init__(self, n_actions, n_states, batch_size, name):
         super().__init__(n_actions, n_states, batch_size)
         # DQN model
         # self.model = self._create_model()
         # Instantiate the DQNetwork
-        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name=str(agent.__class__.__name__) + "DQNetwork")
-
+        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name=(name + "DQNetwork"))
 
     def _create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
@@ -268,13 +267,12 @@ class SignalModel(Model):
     action_map = {False: 0,
                   True: 1}
 
-    def __init__(self, n_actions, n_states, batch_size):
+    def __init__(self, n_actions, n_states, batch_size, name):
         super().__init__(n_actions, n_states, batch_size)
         # DQN model
         # self.model = self._create_model()
         # Instantiate the DQNetwork
-        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name=str(agent.__class__.__name__) + "DQNetwork")
-
+        self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name=(name + "DQNetwork"))
 
     def _create_model(self, alpha=0.00025):
         model_input = keras.layers.Input((self.n_states,), name='inputs')
@@ -297,12 +295,13 @@ class SignalModel(Model):
 class SellSignalModel(SignalModel):
     gamma = 0.99  # Discounting rate
 
-    def __init__(self, n_actions, n_states, batch_size):
-        super().__init__(n_actions, n_states, batch_size)
+    def __init__(self, n_actions, n_states, batch_size, name):
+        super().__init__(n_actions, n_states, batch_size, name)
         # target DQN model for smoothing the learning process
         # self.target_model = super()._create_model()
         # Instantiate the target network
-        self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, name=str(agent.__class__.__name__) + "TargetNetwork")
+        self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate,
+                                     name=(name + "TargetNetwork"))
 
     # override the fit method, since sell signal agent has diff training algo
     def fit(self, state, reward, action_value, next_state=None):
@@ -382,7 +381,7 @@ class SellSignalModel(SignalModel):
         next_states_mb = np.array([each[0][3] for each in batch])
 
         target_Qs_batch = []
-        
+
         actions_mb = self.value_map_to_action(actions_mb)
 
         # DOUBLE DQN Logic

@@ -9,7 +9,7 @@ class SellSignalAgent(Agent):
     def __init__(self, environment):
         super().__init__(environment)
         # high turning point 5*8, low turning point 5*8, technical indicator 4*8, profit 8
-        self.model = SellSignalModel(2, [120], 50)
+        self.model = SellSignalModel(2, [120], 50, str(self.__class__.__name__))
 
     def process_action(self, sell_action, last_state_date):
         market_data = self.environment.get_market_data_by_date(last_state_date)
