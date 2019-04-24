@@ -97,6 +97,8 @@ class DDDQNNet:
             self.loss = tf.reduce_mean(self.ISWeights_ * tf.squared_difference(self.target_Q, self.Q))
 
             self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
+            
+        print("Created model with action " + str(self.action_size) + ", state " + str(self.state_size))
 
 
 class Model:
@@ -120,7 +122,7 @@ class Model:
         self.memory = Memory(self.memory_size)
         self.one_hot_encoder = OneHotEncoder(sparse=False)
         # Setup TensorBoard Writer
-        # self.writer = tf.summary.FileWriter("/tensorboard/dddqn/1")
+        self.writer = tf.summary.FileWriter("/tensorboard/dddqn/1")
 
     @classmethod
     def init(cls):
@@ -215,15 +217,15 @@ class Model:
         # Update priority
         self.memory.batch_update(tree_idx, absolute_errors)
 
-        """
+        
         # Write TF Summaries
-        summary = sess.run(write_op, feed_dict={DQNetwork.inputs_: states_mb,
-                                                DQNetwork.target_Q: targets_mb,
-                                                DQNetwork.actions_: actions_mb,
-                                                DQNetwork.ISWeights_: ISWeights_mb})
-        writer.add_summary(summary, episode)
-        writer.flush()
-        """
+        summary = self.sess.run(write_op, feed_dict={self.model.inputs_: states_mb,
+                                                self.model.target_Q: targets_mb,
+                                                self.model.actions_: actions_mb,
+                                                self.model.ISWeights_: ISWeights_mb})
+        self.writer.add_summary(summary, episode)
+        self.writer.flush()
+        
 
 
 class OrderModel(Model):
@@ -415,9 +417,9 @@ class SellSignalModel(SignalModel):
         self.memory.batch_update(tree_idx, absolute_errors)
 
         # Write TF Summaries
-        # summary = self.sess.run(write_op, feed_dict={DQNetwork.inputs_: states_mb,
-        #                                    DQNetwork.target_Q: targets_mb,
-        #                                    DQNetwork.actions_: actions_mb,
-        #                               DQNetwork.ISWeights_: ISWeights_mb})
-        # writer.add_summary(summary, episode)
-        # writer.flush()
+        summary = self.sess.run(write_op, feed_dict={self.model.inputs_: states_mb,
+                                           self.model.target_Q: targets_mb,
+                                           self.model.actions_: actions_mb,
+                                      self.model.ISWeights_: ISWeights_mb})
+        self.writer.add_summary(summary, episode)
+        self.writer.flush()
