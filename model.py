@@ -98,6 +98,9 @@ class DDDQNNet:
 
             self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
             
+            # summary
+            self.summary_loss = tf.summary.scalar("Loss", self.loss)
+            
         print("Created model with action " + str(self.action_size) + ", state " + str(self.state_size))
 
 
@@ -114,15 +117,19 @@ class Model:
     learning_rate = 0.00025  # Alpha (aka learning rate)
     sess = tf.Session()
     saver = tf.train.Saver()
+    # Setup TensorBoard Writer
+    writer = tf.summary.FileWriter("/home/laikasin93/tensorboard/dddqn/1")
+    ## Losses
+    write_op = tf.summary.merge_all()
+
 
     def __init__(self, n_actions, n_states, batch_size):
         self.n_actions = n_actions
         self.n_states = n_states
         self.batch_size = batch_size
+        self.step = 0
         self.memory = Memory(self.memory_size)
         self.one_hot_encoder = OneHotEncoder(sparse=False)
-        # Setup TensorBoard Writer
-        self.writer = tf.summary.FileWriter("/tensorboard/dddqn/1")
 
     @classmethod
     def init(cls):
@@ -132,10 +139,14 @@ class Model:
         self.target_model.set_weights(self.model.get_weights())
 
     def fit(self, state, reward, action_value, next_state=None):
-        self.store_experience(state, reward, action_value)
+        if next_state is None:
+            self.store_experience(state, reward, action_value)
+        else:
+            self.store_experience(state, reward, action_value, next_state)
 
         if self.memory.is_full():
             self.fit_model(self.batch_size)
+            self.step = self.step + 1
 
             """
             tree_idx, batch, ISWeights = self.memory.sample(self.batch_size)
@@ -219,11 +230,11 @@ class Model:
 
         
         # Write TF Summaries
-        summary = self.sess.run(write_op, feed_dict={self.model.inputs_: states_mb,
+        summary = self.sess.run(self.model.summary_loss, feed_dict={self.model.inputs_: states_mb,
                                                 self.model.target_Q: targets_mb,
                                                 self.model.actions_: actions_mb,
                                                 self.model.ISWeights_: ISWeights_mb})
-        self.writer.add_summary(summary, episode)
+        self.writer.add_summary(summary, self.step)
         self.writer.flush()
         
 
@@ -271,8 +282,6 @@ class SignalModel(Model):
 
     def __init__(self, n_actions, n_states, batch_size, name):
         super().__init__(n_actions, n_states, batch_size)
-        # DQN model
-        # self.model = self._create_model()
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name=(name + "DQNetwork"))
 
@@ -299,52 +308,9 @@ class SellSignalModel(SignalModel):
 
     def __init__(self, n_actions, n_states, batch_size, name):
         super().__init__(n_actions, n_states, batch_size, name)
-        # target DQN model for smoothing the learning process
-        # self.target_model = super()._create_model()
         # Instantiate the target network
         self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate,
                                      name=(name + "TargetNetwork"))
-
-    # override the fit method, since sell signal agent has diff training algo
-    def fit(self, state, reward, action_value, next_state=None):
-        self.store_experience(state, reward, action_value, next_state)
-
-        if self.memory.is_full():
-            self.fit_model(self.batch_size)
-
-        """
-            tree_idx, batch, ISWeights = self.memory.sample(self.batch_size)
-            
-            states = np.array([each[0][0] for each in batch])
-            actions = np.array([each[0][1] for each in batch])
-            rewards = np.array([each[0][2] for each in batch]) 
-                
-            # Run one fast-forward to get the Q-values for all actions
-            states = np.expand_dims(states, axis=0)
-            targets = self.model.predict(states)
-
-            # Set the new Q values to target
-            one_hot_actions = self.value_map_to_action(actions)
-
-            targets[one_hot_actions.astype(bool)] = rewards
-
-            loss = self.model.fit(states, targets, epochs=1, batch_size=len(rewards), verbose=0)
-         
-        # Run one fast-forward to get the Q-values for all actions
-        state = np.expand_dims(state, axis=0)
-        target = self.model.predict(state)
-
-        next_state = np.expand_dims(next_state, axis=0)
-        next_Q_values = self.target_model.predict(next_state)
-        new_Q_values = reward + self.gamma * np.max(next_Q_values, axis=1)
-
-        # Set the new Q values to target
-        one_hot_action = self.value_map_to_action(action_value)
-
-        target[one_hot_action.astype(bool)] = new_Q_values
-
-        loss = self.model.fit(state, target, epochs=1, batch_size=1, verbose=0)
-        """
 
     def store_experience(self, state, reward, action_value, next_state=None):
         # prioritized replay
@@ -417,9 +383,9 @@ class SellSignalModel(SignalModel):
         self.memory.batch_update(tree_idx, absolute_errors)
 
         # Write TF Summaries
-        summary = self.sess.run(write_op, feed_dict={self.model.inputs_: states_mb,
+        summary = self.sess.run(self.model.summary_loss, feed_dict={self.model.inputs_: states_mb,
                                            self.model.target_Q: targets_mb,
                                            self.model.actions_: actions_mb,
                                       self.model.ISWeights_: ISWeights_mb})
-        self.writer.add_summary(summary, episode)
+        self.writer.add_summary(summary, self.step)
         self.writer.flush()
