@@ -130,6 +130,7 @@ class Model:
         self.step = 0
         self.memory = Memory(self.memory_size)
         self.one_hot_encoder = OneHotEncoder(sparse=False)
+        self.one_hot_encoder.fit(np.array([i for i in range(self.n_actions)]).reshape(-1, 1))
 
     @classmethod
     def init(cls):
@@ -251,10 +252,9 @@ class OrderModel(Model):
 
     def __init__(self, n_actions, n_states, batch_size, name):
         super().__init__(n_actions, n_states, batch_size)
-        # DQN model
-        # self.model = self._create_model()
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, name=(name + "DQNetwork"))
+        
 
     def _create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
@@ -268,9 +268,6 @@ class OrderModel(Model):
         model = keras.models.Model(input=[model_input], output=output)
         optimizer = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
         model.compile(optimizer, loss=huber_loss)
-
-        self.one_hot_encoder.fit(np.array([i for i in range(self.n_actions)]).reshape(-1, 1))
-
         print("Created model with action " + str(self.n_actions) + ", state " + str(self.n_states))
 
         return model
@@ -295,8 +292,6 @@ class SignalModel(Model):
         model = keras.models.Model(input=[model_input], output=output)
         optimizer = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
         model.compile(optimizer, loss=huber_loss)
-
-        self.one_hot_encoder.fit(np.array([i for i in range(self.n_actions)]).reshape(-1, 1))
 
         print("Created model with action " + str(self.n_actions) + ", state " + str(self.n_states))
 

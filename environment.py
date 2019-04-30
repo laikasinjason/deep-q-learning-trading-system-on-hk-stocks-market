@@ -261,8 +261,7 @@ class Environment:
         while self.__iteration < self.__num_train:
             self.start_new_epoch()
 
-            if self.__iteration % self.max_tau == 0:  # 1000
-                # self.__sell_signal_agent.model.save_target_model()
+            if self.__iteration % self.max_tau == 0:
                 self.__sell_signal_agent.model.update_target_graph()
 
                 print("Saved sell signal agent's target model.")
