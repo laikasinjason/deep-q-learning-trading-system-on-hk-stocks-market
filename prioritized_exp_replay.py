@@ -32,6 +32,7 @@ class SumTree(object):
 
         # Contains the experiences (so the size of data is capacity)
         self.data = np.zeros(capacity, dtype=object)
+        self.bool_is_full = False
 
     """
     Here we add our priority score in the sumtree leaf and add the experience in data
@@ -59,6 +60,7 @@ tree_index  0 0  0  We fill the leaves from left to right
         self.data_pointer += 1
 
         if self.data_pointer >= self.capacity:  # If we're above the capacity, you go back to first index (we overwrite)
+            self.bool_is_full = True # mark memory full
             self.data_pointer = 0
 
     """
@@ -70,7 +72,7 @@ tree_index  0 0  0  We fill the leaves from left to right
         change = priority - self.tree[tree_index]
         self.tree[tree_index] = priority
 
-        # then propagate the change through tree
+        # then propagate the change through treeself.name
         while tree_index != 0:  # this method is faster than the recursive loop in the reference code
 
             """
@@ -137,7 +139,7 @@ tree_index  0 0  0  We fill the leaves from left to right
         return self.tree[0]  # Returns the root node
 
     def is_full(self):
-        return self.data_pointer >= self.capacity
+        return self.bool_is_full
 
 
 class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree

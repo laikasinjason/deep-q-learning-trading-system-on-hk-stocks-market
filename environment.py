@@ -198,6 +198,7 @@ class Environment:
             self.start_new_epoch()
 
             gc.collect()
+        print("Finished filling up memory")
 
     def set_buy_price(self, bp):
         self.__bp = bp

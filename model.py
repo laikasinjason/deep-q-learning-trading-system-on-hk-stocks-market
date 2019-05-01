@@ -114,19 +114,19 @@ class Model:
     Ns = number of samples in training data set.
     α = an arbitrary scaling factor usually 2-10.
     """
-    memory_size = 10000
+    memory_size = 100
     learning_rate = 0.00025  # Alpha (aka learning rate)
     sess = tf.Session()
     saver = None
     writer = None
-    ## Losses
-    write_op = tf.summary.merge_all()
 
-    def __init__(self, n_actions, n_states, batch_size):
+    def __init__(self, n_actions, n_states, batch_size, name):
         self.n_actions = n_actions
         self.n_states = n_states
         self.batch_size = batch_size
         self.step = 0
+        self.name = name
+        self.write_op = None
         self.memory = Memory(self.memory_size)
         self.one_hot_encoder = OneHotEncoder(sparse=False)
         self.one_hot_encoder.fit(np.array([i for i in range(self.n_actions)]).reshape(-1, 1))
@@ -171,6 +171,9 @@ class Model:
 
             loss = self.model.fit(states, targets, epochs=1, batch_size=len(rewards), verbose=0)
             """
+        else:
+            if self.memory.tree.data_pointer % 100 == 0:
+                print(self.name + " - Filled memory - " + str(self.memory.tree.data_pointer))
 
     def store_experience(self, state, reward, action_value, next_state=None):
         # prioritized replay
@@ -234,10 +237,10 @@ class Model:
         self.memory.batch_update(tree_idx, absolute_errors)
 
         # Write TF Summaries
-        summary = self.sess.run(self.model.summary_loss, feed_dict={self.model.inputs_: states_mb,
-                                                self.model.target_Q: targets_mb,
-                                                self.model.actions_: actions_mb,
-                                                self.model.ISWeights_: ISWeights_mb})
+        summary = self.sess.run(self.write_op, feed_dict={self.model.inputs_: states_mb,
+                                                          self.model.target_Q: targets_mb,
+                                                          self.model.actions_: actions_mb,
+                                                          self.model.ISWeights_: ISWeights_mb})
         self.writer.add_summary(summary, self.step)
         self.writer.flush()
 
@@ -253,10 +256,11 @@ class OrderModel(Model):
                   3: 6}
 
     def __init__(self, n_actions, n_states, batch_size, name):
-        super().__init__(n_actions, n_states, batch_size)
+        super().__init__(n_actions, n_states, batch_size, name)
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, self.sess, name=(name + "DQNetwork"))
-
+        with self.sess.graph.as_default():
+            self.write_op = tf.summary.merge_all(scope=(self.name + "DQNetwork"))
 
     def _create_model(self, alpha=0.00025):
         # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
@@ -280,9 +284,11 @@ class SignalModel(Model):
                   True: 1}
 
     def __init__(self, n_actions, n_states, batch_size, name):
-        super().__init__(n_actions, n_states, batch_size)
+        super().__init__(n_actions, n_states, batch_size, name)
         # Instantiate the DQNetwork
         self.model = DDDQNNet(n_states, n_actions, self.learning_rate, self.sess, name=(name + "DQNetwork"))
+        with self.sess.graph.as_default():
+            self.write_op = tf.summary.merge_all(scope=(self.name + "DQNetwork"))
 
     def _create_model(self, alpha=0.00025):
         model_input = keras.layers.Input((self.n_states,), name='inputs')
@@ -306,7 +312,7 @@ class SellSignalModel(SignalModel):
     def __init__(self, n_actions, n_states, batch_size, name):
         super().__init__(n_actions, n_states, batch_size, name)
         # Instantiate the target network
-        self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate,self.sess, name=(name + "TargetNetwork"))
+        self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, self.sess, name=(name + "TargetNetwork"))
 
     def store_experience(self, state, reward, action_value, next_state=None):
         # prioritized replay
@@ -379,9 +385,9 @@ class SellSignalModel(SignalModel):
         self.memory.batch_update(tree_idx, absolute_errors)
 
         # Write TF Summaries
-        summary = self.sess.run(self.model.summary_loss, feed_dict={self.model.inputs_: states_mb,
-                                           self.model.target_Q: targets_mb,
-                                           self.model.actions_: actions_mb,
-                                      self.model.ISWeights_: ISWeights_mb})
+        summary = self.sess.run(self.write_op, feed_dict={self.model.inputs_: states_mb,
+                                                          self.model.target_Q: targets_mb,
+                                                          self.model.actions_: actions_mb,
+                                                          self.model.ISWeights_: ISWeights_mb})
         self.writer.add_summary(summary, self.step)
         self.writer.flush()
