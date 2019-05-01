@@ -32,7 +32,7 @@ class Agent:
             action = self.model.predict(state.value)
         elif not self.model.memory.is_full():
             action = self.model.get_random_action()
-            print("Random action for filling memory")
+            # print("Random action for filling memory")
         else:
             # Choose epsilon based on the iteration
             epsilon = self.get_epsilon_for_iteration(self.environment.get_iteration(), end_epsilon=0.5)
