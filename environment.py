@@ -195,7 +195,6 @@ class Environment:
     def fill_up_memory(self):
         while not self.__buy_signal_agent.model.memory.is_full() or not self.__sell_signal_agent.model.memory.is_full() \
                 or not self.__buy_order_agent.model.memory.is_full() or not self.__sell_order_agent.model.memory.is_full():
-            print("filling")
             self.start_new_epoch()
 
             gc.collect()
@@ -278,7 +277,7 @@ class Environment:
 
     def init(self):
         Model.init()  # init tensorflow global initializer
-        self.__sell_signal_agent().model.update_target_graph()  # sync NN and targetNN
+        self.__sell_signal_agent.model.update_target_graph()  # sync NN and targetNN
 
     def load_model(self):
         model_loading.load_tf_model(self.__buy_signal_agent)
