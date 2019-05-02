@@ -114,7 +114,7 @@ class Model:
     Ns = number of samples in training data set.
     α = an arbitrary scaling factor usually 2-10.
     """
-    memory_size = 100
+    memory_size = 10000
     learning_rate = 0.00025  # Alpha (aka learning rate)
     sess = tf.Session()
     saver = None
@@ -128,7 +128,7 @@ class Model:
         self.name = name
         self.write_op = None
         self.memory = Memory(self.memory_size)
-        self.one_hot_encoder = OneHotEncoder(sparse=False)
+        self.one_hot_encoder = OneHotEncoder(sparse=False, categories='auto')
         self.one_hot_encoder.fit(np.array([i for i in range(self.n_actions)]).reshape(-1, 1))
 
     @classmethod
@@ -172,7 +172,7 @@ class Model:
             loss = self.model.fit(states, targets, epochs=1, batch_size=len(rewards), verbose=0)
             """
         else:
-            if self.memory.tree.data_pointer % 100 == 0:
+            if self.memory.tree.data_pointer % 1000 == 0:
                 print(self.name + " - Filled memory - " + str(self.memory.tree.data_pointer))
 
     def store_experience(self, state, reward, action_value, next_state=None):
@@ -189,7 +189,7 @@ class Model:
         action_pos = np.argmax(Qs)
 
         action_value = self.action_map_to_value(action_pos)
-        print("Predicted action: " + str(action_value))
+        # print("Predicted action: " + str(action_value))
         return action_value
 
     def get_random_action(self):
@@ -227,22 +227,25 @@ class Model:
 
         targets_mb = np.array([each for each in target_Qs_batch])
 
-        _, loss, absolute_errors = self.sess.run([self.model.optimizer, self.model.loss, self.model.absolute_errors],
-                                                 feed_dict={self.model.inputs_: states_mb,
-                                                            self.model.target_Q: targets_mb,
-                                                            self.model.actions_: actions_mb,
-                                                            self.model.ISWeights_: ISWeights_mb})
+        with self.sess.graph.as_default():
 
-        # Update priority
-        self.memory.batch_update(tree_idx, absolute_errors)
+            _, loss, absolute_errors = self.sess.run(
+                [self.model.optimizer, self.model.loss, self.model.absolute_errors],
+                feed_dict={self.model.inputs_: states_mb,
+                           self.model.target_Q: targets_mb,
+                           self.model.actions_: actions_mb,
+                           self.model.ISWeights_: ISWeights_mb})
 
-        # Write TF Summaries
-        summary = self.sess.run(self.write_op, feed_dict={self.model.inputs_: states_mb,
-                                                          self.model.target_Q: targets_mb,
-                                                          self.model.actions_: actions_mb,
-                                                          self.model.ISWeights_: ISWeights_mb})
-        self.writer.add_summary(summary, self.step)
-        self.writer.flush()
+            # Update priority
+            self.memory.batch_update(tree_idx, absolute_errors)
+
+            # Write TF Summaries
+            summary = self.sess.run(self.write_op, feed_dict={self.model.inputs_: states_mb,
+                                                              self.model.target_Q: targets_mb,
+                                                              self.model.actions_: actions_mb,
+                                                              self.model.ISWeights_: ISWeights_mb})
+            self.writer.add_summary(summary, self.step)
+            self.writer.flush()
 
 
 class OrderModel(Model):
@@ -375,19 +378,21 @@ class SellSignalModel(SignalModel):
 
         targets_mb = np.array([each for each in target_Qs_batch])
 
-        _, loss, absolute_errors = self.sess.run([self.model.optimizer, self.model.loss, self.model.absolute_errors],
-                                                 feed_dict={self.model.inputs_: states_mb,
-                                                            self.model.target_Q: targets_mb,
-                                                            self.model.actions_: actions_mb,
-                                                            self.model.ISWeights_: ISWeights_mb})
+        with self.sess.graph.as_default():
+            _, loss, absolute_errors = self.sess.run(
+                [self.model.optimizer, self.model.loss, self.model.absolute_errors],
+                feed_dict={self.model.inputs_: states_mb,
+                           self.model.target_Q: targets_mb,
+                           self.model.actions_: actions_mb,
+                           self.model.ISWeights_: ISWeights_mb})
 
-        # Update priority
-        self.memory.batch_update(tree_idx, absolute_errors)
+            # Update priority
+            self.memory.batch_update(tree_idx, absolute_errors)
 
-        # Write TF Summaries
-        summary = self.sess.run(self.write_op, feed_dict={self.model.inputs_: states_mb,
-                                                          self.model.target_Q: targets_mb,
-                                                          self.model.actions_: actions_mb,
-                                                          self.model.ISWeights_: ISWeights_mb})
-        self.writer.add_summary(summary, self.step)
-        self.writer.flush()
+            # Write TF Summaries
+            summary = self.sess.run(self.write_op, feed_dict={self.model.inputs_: states_mb,
+                                                              self.model.target_Q: targets_mb,
+                                                              self.model.actions_: actions_mb,
+                                                              self.model.ISWeights_: ISWeights_mb})
+            self.writer.add_summary(summary, self.step)
+            self.writer.flush()
