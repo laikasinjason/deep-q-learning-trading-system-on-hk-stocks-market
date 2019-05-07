@@ -8,19 +8,6 @@ from sklearn.preprocessing import OneHotEncoder
 
 from prioritized_exp_replay import Memory
 
-
-# Note: pass in_keras=False to use this function with raw numbers of numpy arrays for testing
-def huber_loss(a, b, in_keras=True):
-    error = a - b
-    quadratic_term = error * error / 2
-    linear_term = abs(error) - 1 / 2
-    use_linear_term = (abs(error) > 1.0)
-    if in_keras:
-        # Keras won't let us multiply floats by booleans, so we explicitly cast the booleans to floats
-        use_linear_term = keras_backend.cast(use_linear_term, 'float32')
-    return use_linear_term * linear_term + (1 - use_linear_term) * quadratic_term
-
-
 class DDDQNNet:
     def __init__(self, state_size, action_size, learning_rate, sess, name):
         self.state_size = state_size
@@ -95,7 +82,7 @@ class DDDQNNet:
                 # The loss is modified because of PER
                 self.absolute_errors = tf.abs(self.target_Q - self.Q)  # for updating Sumtree
 
-                self.loss = tf.reduce_mean(self.ISWeights_ * tf.squared_difference(self.target_Q, self.Q))
+                self.loss = tf.reduce_mean(self.ISWeights_ * tf.losses.huber_loss(self.target_Q, self.Q))
 
                 self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
 
@@ -140,51 +127,32 @@ class Model:
             cls.writer = tf.summary.FileWriter("/home/laikasin93/python/tensorboard/dddqn/1")
             cls.writer.add_graph(cls.sess.graph)
 
-    def copy_model(self):
-        self.target_model.set_weights(self.model.get_weights())
-
     def fit(self, state, reward, action_value, next_state=None):
-        if next_state is None:
-            self.store_experience(state, reward, action_value)
-        else:
-            self.store_experience(state, reward, action_value, next_state)
+
+        self.store_experience(state, reward, action_value, next_state)
 
         if self.memory.is_full():
             self.fit_model(self.batch_size)
             self.step = self.step + 1
 
-            """
-            tree_idx, batch, ISWeights = self.memory.sample(self.batch_size)
-            
-            states = np.array([each[0][0] for each in batch])
-            actions = np.array([each[0][1] for each in batch])
-            rewards = np.array([each[0][2] for each in batch]) 
-                
-            # Run one fast-forward to get the Q-values for all actions
-            states = np.expand_dims(states, axis=0)
-            targets = self.model.predict(states)
-
-            # Set the new Q values to target
-            one_hot_actions = self.value_map_to_action(actions)
-
-            targets[one_hot_actions.astype(bool)] = rewards
-
-            loss = self.model.fit(states, targets, epochs=1, batch_size=len(rewards), verbose=0)
-            """
         else:
             if self.memory.tree.data_pointer % 1000 == 0:
                 print(self.name + " - Filled memory - " + str(self.memory.tree.data_pointer))
 
     def store_experience(self, state, reward, action_value, next_state=None):
         # prioritized replay
-        transition = state, action_value, reward
+        if next_state is None:
+            transition = state, action_value, reward
+        else:
+            transition = state, action_value, reward, next_state
         self.memory.store(transition)  # have high priority for newly arrived transition
 
     def predict(self, state):
         # state = np.expand_dims(state, axis=0)
         # action_pos = self.model.predict(state).argmax()
-
-        Qs = self.sess.run(self.model.output, feed_dict={self.model.inputs_: state.reshape((1, *state.shape))})
+        
+        with self.sess.graph.as_default():
+            Qs = self.sess.run(self.model.output, feed_dict={self.model.inputs_: state.reshape((1, *state.shape))})
         # Take the biggest Q value (= the best action)
         action_pos = np.argmax(Qs)
 
@@ -265,22 +233,6 @@ class OrderModel(Model):
         with self.sess.graph.as_default():
             self.write_op = tf.summary.merge_all(scope=(self.name + "DQNetwork"))
 
-    def _create_model(self, alpha=0.00025):
-        # States for Order Agent (-3% to +3%): { -3, -2, -1, 0, 1, 2, 3 }
-
-        model_input = keras.layers.Input((self.n_states,), name='inputs')
-        layer_1 = keras.layers.Dense(256, activation='relu')(model_input)
-        layer_2 = keras.layers.Dense(128, activation='relu')(layer_1)
-        layer_3 = keras.layers.Dense(64, activation='relu')(layer_2)
-        output = keras.layers.Dense(self.n_actions)(layer_3)
-
-        model = keras.models.Model(input=[model_input], output=output)
-        optimizer = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
-        model.compile(optimizer, loss=huber_loss)
-        print("Created model with action " + str(self.n_actions) + ", state " + str(self.n_states))
-
-        return model
-
 
 class SignalModel(Model):
     action_map = {False: 0,
@@ -293,21 +245,6 @@ class SignalModel(Model):
         with self.sess.graph.as_default():
             self.write_op = tf.summary.merge_all(scope=(self.name + "DQNetwork"))
 
-    def _create_model(self, alpha=0.00025):
-        model_input = keras.layers.Input((self.n_states,), name='inputs')
-        layer_1 = keras.layers.Dense(256, activation='relu')(model_input)
-        layer_2 = keras.layers.Dense(128, activation='relu')(layer_1)
-        layer_3 = keras.layers.Dense(64, activation='relu')(layer_2)
-        output = keras.layers.Dense(self.n_actions)(layer_3)
-
-        model = keras.models.Model(input=[model_input], output=output)
-        optimizer = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
-        model.compile(optimizer, loss=huber_loss)
-
-        print("Created model with action " + str(self.n_actions) + ", state " + str(self.n_states))
-
-        return model
-
 
 class SellSignalModel(SignalModel):
     gamma = 0.99  # Discounting rate
@@ -317,30 +254,22 @@ class SellSignalModel(SignalModel):
         # Instantiate the target network
         self.target_model = DDDQNNet(n_states, n_actions, self.learning_rate, self.sess, name=(name + "TargetNetwork"))
 
-    def store_experience(self, state, reward, action_value, next_state=None):
-        # prioritized replay
-        transition = state, action_value, reward, next_state
-        self.memory.store(transition)  # have high priority for newly arrived transition
-
-    def save_target_model(self):
-        self.target_model.set_weights(self.model.get_weights())
-
     # Copy the parameters of DQN to Target_network
     def update_target_graph(self):
 
         # Get the parameters of our DQNNetwork
-        from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, str(self.__class__.__name__) + "DQNetwork")
+        from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + "DQNetwork")
 
         # Get the parameters of our Target_network
-        to_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, str(self.__class__.__name__) + "TargetNetwork")
+        to_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.name + "TargetNetwork")
 
         op_holder = []
 
         # Update our target_network parameters with DQNNetwork parameters
         for from_var, to_var in zip(from_vars, to_vars):
             op_holder.append(to_var.assign(from_var))
-
-        self.sess.run(op_holder)
+        with self.sess.graph.as_default():
+            self.sess.run(op_holder)
         print("Target Model updated")
 
     def fit_model(self, batch_size):
@@ -361,24 +290,24 @@ class SellSignalModel(SignalModel):
         # Use DQNNetwork to select the action to take at next_state (a') (action with the highest Q-value)
         # Use TargetNetwork to calculate the Q_val of Q(s',a')
 
-        # Get Q values for next_state 
-        q_next_state = self.sess.run(self.model.output, feed_dict={self.model.inputs_: next_states_mb})
-
-        # Calculate Qtarget for all actions that state
-        q_target_next_state = self.sess.run(self.target_model.output,
-                                            feed_dict={self.target_model.inputs_: next_states_mb})
-
-        # Q_target = r + gamma * Qtarget(s',a') 
-        for i in range(0, len(batch)):
-            # We got a'
-            action = np.argmax(q_next_state[i])
-
-            target = rewards_mb[i] + self.gamma * q_target_next_state[i][action]
-            target_Qs_batch.append(target)
-
-        targets_mb = np.array([each for each in target_Qs_batch])
-
         with self.sess.graph.as_default():
+            # Get Q values for next_state 
+            q_next_state = self.sess.run(self.model.output, feed_dict={self.model.inputs_: next_states_mb})
+
+            # Calculate Qtarget for all actions that state
+            q_target_next_state = self.sess.run(self.target_model.output,
+                                                feed_dict={self.target_model.inputs_: next_states_mb})
+
+            # Q_target = r + gamma * Qtarget(s',a') 
+            for i in range(0, len(batch)):
+                # We got a'
+                action = np.argmax(q_next_state[i])
+
+                target = rewards_mb[i] + self.gamma * q_target_next_state[i][action]
+                target_Qs_batch.append(target)
+
+            targets_mb = np.array([each for each in target_Qs_batch])
+            
             _, loss, absolute_errors = self.sess.run(
                 [self.model.optimizer, self.model.loss, self.model.absolute_errors],
                 feed_dict={self.model.inputs_: states_mb,

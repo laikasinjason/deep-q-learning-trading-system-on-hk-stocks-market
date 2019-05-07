@@ -234,7 +234,6 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
     """
     Update the priorities on the tree
     """
-
     def batch_update(self, tree_idx, abs_errors):
         abs_errors += self.PER_e  # convert to abs and avoid 0
         clipped_errors = np.minimum(abs_errors, self.absolute_error_upper)
