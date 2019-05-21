@@ -33,20 +33,23 @@ class DDDQNNet:
                 self.target_Q = tf.placeholder(tf.float32, [None], name="target")
 
                 # Input
-                self.dense1 = tf.layers.dense(inputs=self.inputs_,
+                self.batchNorm1 = tf.keras.layers.BatchNormalization(name="batchNorm1")(self.inputs_)
+                self.dense1 = tf.layers.dense(inputs=self.batchNorm1,
                                               units=512,
                                               activation=tf.nn.elu,
                                               kernel_initializer=tf.contrib.layers.xavier_initializer(),
                                               name="dense1")
-                self.dense2 = tf.layers.dense(inputs=self.dense1,
+                self.batchNorm2 = tf.keras.layers.BatchNormalization(name="batchNorm2")(self.inputs_)
+                self.dense2 = tf.layers.dense(inputs=self.batchNorm2,
                                               units=256,
                                               activation=tf.nn.elu,
                                               kernel_initializer=tf.contrib.layers.xavier_initializer(),
                                               name="dense2")
+                self.dropOut = tf.keras.layers.Dropout(rate=0.2)(self.dense2)
 
                 # Here we separate into two streams
                 # The one that calculate V(s)
-                self.value_fc = tf.layers.dense(inputs=self.dense2,
+                self.value_fc = tf.layers.dense(inputs=self.dropOut,
                                                 units=128,
                                                 activation=tf.nn.elu,
                                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),

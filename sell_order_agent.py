@@ -32,15 +32,11 @@ class SellOrderAgent(Agent):
         sp = ma5 + action / 100 * ma5
         d = sp - high
 
-        if d <= 0:
-            reward = math.exp(100 * d / high)
-
-        else:
-            reward = 0
+        if d > 0:
             sp = close
 
         if not self.environment.get_evaluation_mode():
-            self.model.fit(self.state.value, reward, action)
+            self.fit_all_actions(ma5, high)
         else:
             profit = (1 - self.environment.transaction_cost) * sp - self.environment.get_buy_price()
             pf_return = ((
@@ -61,3 +57,15 @@ class SellOrderAgent(Agent):
         result = self.process_action(action, date)
         if not result:
             self.environment.process_epoch_end(None, True)
+            
+    def fit_all_actions(self, ma5, high):
+        # rewards are well-defined, we generate all rewards for every possible actions and fit the model
+        for action in OrderModel.action_map.keys():
+            bp = ma5 + action / 100 * ma5
+            d = sp - high
+            reward = None
+            if d <= 0:
+                reward = math.exp(100 * d / high)
+            else:
+                reward = 0
+            self.model.fit(self.state.value, reward, action)

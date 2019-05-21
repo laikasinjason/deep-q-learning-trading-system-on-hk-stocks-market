@@ -36,7 +36,7 @@ class SellSignalAgent(Agent):
             # force sell signal agent to sell if profit is in certain condition, or sell action
             self.environment.invoke_sell_order_agent()
         else:
-            reward = roc
+            reward = 10 * roc
             if not self.environment.get_evaluation_mode():
                 self.model.fit(self.state.value, reward, sell_action, next_state.value)
 

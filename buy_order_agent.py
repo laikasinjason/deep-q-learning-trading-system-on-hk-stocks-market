@@ -31,12 +31,11 @@ class BuyOrderAgent(Agent):
         d = bp - low
         # print("processing buy order, buy price: " + str(bp))
 
+        if not self.environment.get_evaluation_mode():
+                self.fit_all_actions(ma5, low)
+                
         if d >= 0:
-            reward = math.exp(-100 * d / low)
-
-            if not self.environment.get_evaluation_mode():
-                self.model.fit(self.state.value, reward, action)
-            else:
+            if self.environment.get_evaluation_mode():
                 record = {'bp': bp, 'date': date}
                 self.environment.record(**record)
 
@@ -44,9 +43,6 @@ class BuyOrderAgent(Agent):
             self.environment.set_buy_price(bp)
             self.environment.invoke_sell_signal_agent()
         else:
-            reward = 0
-            if not self.environment.get_evaluation_mode():
-                self.model.fit(self.state.value, reward, action)
             self.environment.invoke_buy_signal_agent(True, self.state.date)
         return True
 
@@ -60,3 +56,15 @@ class BuyOrderAgent(Agent):
         result = self.process_action(action, date)
         if not result:
             self.environment.process_epoch_end(None, True)
+            
+    def fit_all_actions(self, ma5, low):
+        # rewards are well-defined, we generate all rewards for every possible actions and fit the model
+        for action in OrderModel.action_map.keys():
+            bp = ma5 + action / 100 * ma5
+            d = bp - low
+            reward = None
+            if d >= 0:
+                reward = math.exp(-100 * d / low)
+            else:
+                reward = 0
+            self.model.fit(self.state.value, reward, action)
