@@ -1,12 +1,11 @@
 import random
 
-import keras
 import numpy as np
 import tensorflow as tf  # Deep Learning library
-from keras import backend as keras_backend
 from sklearn.preprocessing import OneHotEncoder
 
 from prioritized_exp_replay import Memory
+
 
 class DDDQNNet:
     def __init__(self, state_size, action_size, learning_rate, sess, name):
@@ -153,7 +152,7 @@ class Model:
     def predict(self, state):
         # state = np.expand_dims(state, axis=0)
         # action_pos = self.model.predict(state).argmax()
-        
+
         with self.sess.graph.as_default():
             Qs = self.sess.run(self.model.output, feed_dict={self.model.inputs_: state.reshape((1, *state.shape))})
         # Take the biggest Q value (= the best action)
@@ -199,7 +198,6 @@ class Model:
         targets_mb = np.array([each for each in target_Qs_batch])
 
         with self.sess.graph.as_default():
-
             _, loss, absolute_errors = self.sess.run(
                 [self.model.optimizer, self.model.loss, self.model.absolute_errors],
                 feed_dict={self.model.inputs_: states_mb,
@@ -310,7 +308,7 @@ class SellSignalModel(SignalModel):
                 target_Qs_batch.append(target)
 
             targets_mb = np.array([each for each in target_Qs_batch])
-            
+
             _, loss, absolute_errors = self.sess.run(
                 [self.model.optimizer, self.model.loss, self.model.absolute_errors],
                 feed_dict={self.model.inputs_: states_mb,

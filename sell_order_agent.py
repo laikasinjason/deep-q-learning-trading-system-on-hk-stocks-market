@@ -57,13 +57,12 @@ class SellOrderAgent(Agent):
         result = self.process_action(action, date)
         if not result:
             self.environment.process_epoch_end(None, True)
-            
+
     def fit_all_actions(self, ma5, high):
         # rewards are well-defined, we generate all rewards for every possible actions and fit the model
         for action in OrderModel.action_map.keys():
-            bp = ma5 + action / 100 * ma5
+            sp = ma5 + action / 100 * ma5
             d = sp - high
-            reward = None
             if d <= 0:
                 reward = math.exp(100 * d / high)
             else:

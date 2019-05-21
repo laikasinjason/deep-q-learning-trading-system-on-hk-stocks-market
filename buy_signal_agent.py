@@ -3,7 +3,6 @@ from model import SignalModel
 
 
 class BuySignalAgent(Agent):
-
     state = None  # save the state to be trained
     buy_action = None  # save the action needed to pass to fit method
 
